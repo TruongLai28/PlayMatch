@@ -1,37 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { igdbClient } from '../../../lib/igdb'
 
 /**
  * @swagger
  * /api/data:
  *   get:
- *     description: Returns sample data
+ *     description: Search games from IGDB
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Game search query
  *     responses:
  *       200:
  *         description: Successful response
  */
-export async function GET() {
-  const data = [
-    { id: 1, name: 'Sample Data 1' },
-    { id: 2, name: 'Sample Data 2' }
-  ]
-  
-  return NextResponse.json(data)
-}
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const query = searchParams.get('q')
 
-/**
- * @swagger
- * /api/data:
- *   post:
- *     description: Create new data
- *     responses:
- *       201:
- *         description: Data created
- */
-export async function POST(request: NextRequest) {
-  const body = await request.json()
-  
-  return NextResponse.json({ 
-    id: Date.now(), 
-    ...body 
-  }, { status: 201 })
+    if (!query) {
+      return NextResponse.json({ error: 'Query parameter required' })
+    }
+
+    const games = await igdbClient.searchGames(query)
+    return NextResponse.json(games)
+
+  } catch (error) {
+    console.error('Error:', error)
+    return NextResponse.json({ error: 'Failed to fetch games' }, { status: 500 })
+  }
 }

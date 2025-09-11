@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.57.2",
     "@types/swagger-ui-react": "^5.18.0",
+    "axios": "^1.11.0",
     "next": "15.5.2",
     "next-swagger-doc": "^0.3.6",
     "react": "19.1.0",
