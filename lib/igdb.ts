@@ -43,6 +43,23 @@ class IGDBClient {
 
     return response.data
   }
+  
+  //helper for IGDB endpoints like genre and games
+  async apiRequest(endpoint: string, body: string) {
+    const token = await this.getAccessToken()
+
+    const response = await axios.post(`https://api.igdb.com/v4/${endpoint}`, body, {
+      headers: {
+        'Client-ID': this.clientId,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'text/plain'
+      }
+    }
+  )
+    return response.data
+  }
+
+
 }
 
 export const igdbClient = new IGDBClient()
