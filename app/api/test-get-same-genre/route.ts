@@ -5,6 +5,46 @@ import { igdbClient } from '../../../lib/igdb'
 //404 = not found
 //500 = server error 
 
+
+/**
+ * @swagger
+ * /api/test-get-same-genre:
+ *   post:
+ *     summary: Get games with same genre
+ *     description: Find games with the same genre as the input game
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - gameName
+ *             properties:
+ *               gameName:
+ *                 type: string
+ *                 description: Name of the game to find similar games for
+ *     responses:
+ *       200:
+ *         description: Successfully found similar games
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 genre:
+ *                   type: number
+ *                 candidates:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: Bad request - missing game name
+ *       404:
+ *         description: Game not found
+ *       500:
+ *         description: Server error
+ */
 export async function POST(req: NextRequest) {
   try {
     const { gameName } = await req.json()
