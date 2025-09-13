@@ -43,6 +43,26 @@ class IGDBClient {
 
     return response.data
   }
+
+  async getAllGames(limit: number = 50, offset: number = 0) {
+    const token = await this.getAccessToken()
+    
+    const response = await axios.post('https://api.igdb.com/v4/games', 
+      `fields name,cover.url,rating,first_release_date,genres.name,platforms.name,summary; 
+       where rating > 0; 
+       sort id desc; 
+       limit ${limit}; 
+       offset ${offset};`,
+      {
+        headers: {
+          'Client-ID': this.clientId,
+          'Authorization': `Bearer ${token}`,
+        }
+      }
+    )
+
+    return response.data
+  }
   
   //helper for IGDB endpoints like genre and games
   async apiRequest(endpoint: string, body: string) {
@@ -54,12 +74,9 @@ class IGDBClient {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'text/plain'
       }
-    }
-  )
+    })
     return response.data
   }
-
-
 }
 
 export const igdbClient = new IGDBClient()
