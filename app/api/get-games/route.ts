@@ -3,7 +3,7 @@ import { igdbClient } from '../../../lib/igdb'
 
 /**
  * @swagger
- * /api/get-data:
+ * /api/get-games:
  *   get:
  *     description: Fetch all games from IGDB
  *     parameters:
