@@ -1,103 +1,170 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Skeleton } from '@/components/ui/skeleton'
+import { HeroSection } from '@/components/HeroSection'
+import { GameRow } from '@/components/GameRow'
+
+interface Game {
+  id: number
+  name: string
+  cover?: {
+    url: string
+  }
+  summary?: string
+  rating?: number
+  genres?: Array<{ name: string }>
+}
+
+// Loading skeleton for hero section
+function HeroSkeleton() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="relative h-screen overflow-hidden bg-zinc-900">
+      <Skeleton className="absolute inset-0 bg-zinc-800" />
+      <div className="relative z-10 h-full flex flex-col justify-center px-4 md:px-8 lg:px-12">
+        <div className="max-w-2xl space-y-4">
+          <Skeleton className="h-16 md:h-24 lg:h-32 w-full max-w-2xl bg-zinc-700" />
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-6 w-16 bg-zinc-700" />
+            <Skeleton className="h-6 w-24 bg-zinc-700" />
+            <Skeleton className="h-6 w-20 bg-zinc-700" />
+          </div>
+          <Skeleton className="h-24 w-full max-w-xl bg-zinc-700" />
+          <div className="flex space-x-4 pt-4">
+            <Skeleton className="h-12 w-32 bg-zinc-700" />
+            <Skeleton className="h-12 w-32 bg-zinc-700" />
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
-  );
+  )
+}
+
+export default function HomePage() {
+  const [featuredGame, setFeaturedGame] = useState<Game | null>(null)
+  const [popularGames, setPopularGames] = useState<Game[]>([])
+  const [newReleases, setNewReleases] = useState<Game[]>([])
+  const [recommendations, setRecommendations] = useState<Game[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchHomePageData()
+  }, [])
+
+  const fetchHomePageData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+     
+      // Fetch different categories of games
+      const [popular, newGames, recommended] = await Promise.all([
+        fetch('/api/games/popular').then(res => {
+          if (!res.ok) throw new Error('Failed to fetch popular games')
+          return res.json()
+        }),
+        fetch('/api/games/new-releases').then(res => {
+          if (!res.ok) throw new Error('Failed to fetch new releases')
+          return res.json()
+        }),
+        fetch('/api/games/recommendations').then(res => {
+          if (!res.ok) throw new Error('Failed to fetch recommendations')
+          return res.json()
+        }),
+      ])
+
+      setPopularGames(popular || [])
+      setNewReleases(newGames || [])
+      setRecommendations(recommended || [])
+     
+      // Set featured game as the first popular game
+      if (popular && popular.length > 0) {
+        setFeaturedGame(popular[0])
+      }
+    } catch (error) {
+      console.error('Error fetching homepage data:', error)
+      setError('Failed to load games. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <Alert className="max-w-md bg-zinc-900 border-zinc-700">
+          <AlertDescription className="text-center text-zinc-300">
+            {error}
+            <Button 
+              className="mt-4 w-full" 
+              onClick={fetchHomePageData}
+              variant="outline"
+            >
+              Try Again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <HeroSkeleton />
+        <div className="space-y-8 -mt-32 relative z-10">
+          <GameRow title="Recommended for You" games={[]} loading={true} />
+          <GameRow title="Popular Games" games={[]} loading={true} />
+          <GameRow title="New Releases" games={[]} loading={true} />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-white">
+      {/* Hero Section */}
+      {featuredGame && (
+        <HeroSection 
+          game={featuredGame}
+        />
+      )}
+     
+      {/* Game Rows */}
+      <div className="space-y-8 -mt-32 relative z-10 overflow-visible">
+        <GameRow 
+          title="Recommended for You" 
+          games={recommendations}
+          loading={false}
+          showCount={true}
+        />
+       
+        <GameRow 
+          title="Popular Games" 
+          games={popularGames}
+          loading={false}
+          showCount={true}
+        />
+       
+        <GameRow 
+          title="New Releases" 
+          games={newReleases}
+          loading={false}
+          showCount={true}
+        />
+
+        {/* Empty State */}
+        {!recommendations.length && !popularGames.length && !newReleases.length && (
+          <div className="text-center py-20">
+            <h3 className="text-xl text-gray-400 mb-4">No games found</h3>
+            <Button onClick={fetchHomePageData} variant="outline">
+              Refresh
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
