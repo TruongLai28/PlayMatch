@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarInset, SidebarFloatingTrigger } from '@/compone
 import { HeaderSearch } from '@/components/header-search'
 import { AppSidebar } from '@/components/app-sidebar'
 import { PinnedCardProvider } from '@/components/pinned-card-context'
+import { CategoryBar } from '@/components/CategoryBar'
 
 export const metadata: Metadata = {
   title: 'PlayMatch - Game Recommendations',
@@ -28,13 +29,15 @@ export default function RootLayout({
             <SidebarInset>
               <header className="z-20 w-full bg-transparent">
                 <div className="mx-auto w-full max-w-3xl px-4 py-3">
-                  <div className="mx-auto bg-white/100 backdrop-blur-sm border border-sidebar-border rounded-xl shadow-sm">
+                  <div className="mx-auto bg-background border border-sidebar-border/40 rounded-xl shadow-sm">
                     <div className="flex items-center gap-4 p-3">
                       <HeaderSearch />
                     </div>
                   </div>
                 </div>
               </header>
+
+              <CategoryBar />
 
               {children}
             </SidebarInset>

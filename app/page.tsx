@@ -114,7 +114,7 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-black text-white">
         <HeroSkeleton />
-        <div className="space-y-8 -mt-32 relative z-10">
+        <div className="space-y-8 mt-8 relative z-10">
           <GameRow title="Recommended for You" games={[]} loading={true} />
           <GameRow title="Popular Games" games={[]} loading={true} />
           <GameRow title="New Releases" games={[]} loading={true} />
@@ -133,7 +133,7 @@ export default function HomePage() {
       )}
      
       {/* Game Rows */}
-      <div className="space-y-8 -mt-32 relative z-10 overflow-visible">
+  <div className="space-y-8 mt-8 relative z-10 overflow-visible">
         <GameRow 
           title="Recommended for You" 
           games={recommendations}

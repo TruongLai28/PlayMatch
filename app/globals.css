@@ -41,8 +41,8 @@
   --steel-blue: #3F88C5; /* Steel blue */
 
   /* Application semantic colors */
-  --background: #ffffff; /* page background */
-  --foreground: #0b1220; /* primary text on white */
+  --background: #000000; /* page background */
+  --foreground: #ffffff; /* primary text on black */
   --muted: var(--cadet-gray);
 
   /* Sidebar (inverted) */
