@@ -30,3 +30,104 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Color tokens (requested palette) */
+:root {
+  /* Named palette */
+  --prussian-blue: #1C3144; /* Prussian blue */
+  --engineering-orange: #D00000; /* Engineering orange */
+  --selective-yellow: #FFBA08; /* Selective yellow */
+  --cadet-gray: #A2AEBB; /* Cadet gray */
+  --steel-blue: #3F88C5; /* Steel blue */
+
+  /* Application semantic colors */
+  --background: #ffffff; /* page background */
+  --foreground: #0b1220; /* primary text on white */
+  --muted: var(--cadet-gray);
+
+  /* Sidebar (inverted) */
+  --sidebar-bg: var(--prussian-blue);
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: var(--engineering-orange);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--steel-blue);
+  --sidebar-accent-foreground: #ffffff;
+  /* border color used by components that reference HSL var */
+  --sidebar-border: 206 36% 15%; /* used with hsl(var(--sidebar-border)) */
+}
+
+/* Apply base page background and text color */
+html, body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Helper utility mappings used across templates */
+.bg-background, [class*="bg-background"] {
+  background-color: var(--background) !important;
+}
+.text-foreground {
+  color: var(--foreground) !important;
+}
+
+/* Sidebar inversion utilities */
+.bg-sidebar, [data-sidebar="sidebar"], [data-slot="sidebar-inner"] {
+  background-color: var(--sidebar-bg) !important;
+  color: var(--sidebar-foreground) !important;
+}
+.text-sidebar-foreground {
+  color: var(--sidebar-foreground) !important;
+}
+.text-sidebar-primary {
+  color: var(--sidebar-primary) !important;
+}
+.text-sidebar-primary-foreground {
+  color: var(--sidebar-primary-foreground) !important;
+}
+.bg-sidebar-accent {
+  background-color: var(--sidebar-accent) !important;
+}
+.text-sidebar-accent-foreground {
+  color: var(--sidebar-accent-foreground) !important;
+}
+.bg-sidebar-border {
+  background-color: hsl(var(--sidebar-border)) !important;
+}
+.border-sidebar-border {
+  border-color: hsl(var(--sidebar-border)) !important;
+}
+.ring-sidebar-ring {
+  /* soft ring using steel-blue */
+  box-shadow: 0 0 0 4px rgba(63,136,197,0.08);
+}
+
+/* Make sure headers that used bg-background/60 are readable on white */
+header[class*="bg-background"] {
+  background-color: rgba(255,255,255,0.6) !important;
+}
+
+/* Card button styles independent from page background */
+.card-btn-outline {
+  background: transparent !important;
+  border: 1px solid var(--engineering-orange) !important;
+  color: var(--engineering-orange) !important;
+}
+.card-btn-outline:hover {
+  background: rgba(208,0,0,0.06) !important;
+}
+.card-btn-solid {
+  background: var(--steel-blue) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+}
+.card-btn-solid:hover {
+  filter: brightness(0.95);
+}
+.card-btn-icon {
+  width: 2rem !important;
+  height: 2rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}

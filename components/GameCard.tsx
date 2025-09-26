@@ -1,9 +1,10 @@
-'use client'
+ 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Play, Plus, ThumbsUp, ChevronDown, Star } from 'lucide-react'
+import { Plus, ThumbsUp, Star } from 'lucide-react'
 
 interface Game {
   id: number
@@ -18,22 +19,88 @@ interface Game {
 
 interface GameCardProps {
   game: Game
-  onPlayClick?: () => void
   onAddToList?: () => void
   onLike?: () => void
   onMoreInfo?: () => void
   isLastCard?: boolean
+  isPinned?: boolean
 }
 
 export function GameCard({ 
   game, 
-  onPlayClick, 
   onAddToList, 
   onLike, 
   onMoreInfo,
   isLastCard = false
+  , isPinned = false
 }: GameCardProps) {
   const [isHovered, setIsHovered] = useState(false)
+  const [overlayPos, setOverlayPos] = useState<{ top: number; left: number } | null>(null)
+  const cardRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    // Only compute position when hovered or pinned
+    if ((!isHovered && !isPinned) || !cardRef.current) {
+      setOverlayPos(null)
+      return
+    }
+
+    const rect = cardRef.current.getBoundingClientRect()
+    const overlayWidth = 300
+    const overlayHeight = 400
+    const gap = 8
+    // Prefer showing overlay to the right; if not enough space, show to left
+    const wantRight = rect.right + gap + overlayWidth <= window.innerWidth
+    let left = wantRight ? rect.right + gap : rect.left - gap - overlayWidth
+    // Clamp left so overlay stays inside viewport
+    left = Math.max(8, Math.min(left, window.innerWidth - overlayWidth - 8))
+
+    // Center overlay vertically relative to card; clamp to viewport
+    let top = rect.top + (rect.height - overlayHeight) / 2
+    top = Math.max(8, Math.min(top, window.innerHeight - overlayHeight - 8))
+
+    setOverlayPos({ top, left })
+  }, [isHovered, isPinned])
+
+  // Recompute overlay position on scroll/resize and when card resizes
+  useEffect(() => {
+    if ((!isHovered && !isPinned) || !cardRef.current) return
+
+    const recompute = () => {
+      const rect = cardRef.current!.getBoundingClientRect()
+      const overlayWidth = 300
+      const overlayHeight = 400
+      const gap = 8
+      const wantRight = rect.right + gap + overlayWidth <= window.innerWidth
+      let left = wantRight ? rect.right + gap : rect.left - gap - overlayWidth
+      left = Math.max(8, Math.min(left, window.innerWidth - overlayWidth - 8))
+      let top = rect.top + (rect.height - overlayHeight) / 2
+      top = Math.max(8, Math.min(top, window.innerHeight - overlayHeight - 8))
+      setOverlayPos({ top, left })
+    }
+
+    // Run once immediately
+    recompute()
+
+    // Window listeners
+    window.addEventListener('scroll', recompute, { passive: true })
+    window.addEventListener('resize', recompute)
+
+    // ResizeObserver for card element
+    let ro: ResizeObserver | null = null
+    try {
+      ro = new ResizeObserver(recompute)
+      ro.observe(cardRef.current)
+    } catch (e) {
+      // ResizeObserver may not be available in some environments; ignore silently
+    }
+
+    return () => {
+      window.removeEventListener('scroll', recompute)
+      window.removeEventListener('resize', recompute)
+      if (ro) ro.disconnect()
+    }
+  }, [isHovered, isPinned])
 
   const getCoverUrl = (url?: string) => {
     if (!url) return '/placeholder-game.jpg'
@@ -44,9 +111,14 @@ export function GameCard({
     <div className="flex-shrink-0 relative">
       {/* Basic Card - Never changes, no hover effects on the image */}
       <div
-        className="relative w-[280px] cursor-pointer rounded-lg overflow-hidden"
+        ref={cardRef}
+        className="relative w-[280px] cursor-pointer rounded-lg overflow-hidden focus:outline-none"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onMouseDown={(e) => {
+          // Prevent mouse-driven focus so the card doesn't show a focus ring when clicked
+          e.preventDefault()
+        }}
       >
         <img
           src={getCoverUrl(game.cover?.url)}
@@ -60,30 +132,24 @@ export function GameCard({
         )}
       </div>
 
-      {/* Description Panel - Last card on left, others on right */}
-      {isHovered && (
-        <div className={`absolute top-0 bg-zinc-900 rounded-lg p-4 shadow-2xl animate-in duration-200 w-[300px] h-[400px] flex flex-col z-50 ${
-          isLastCard 
-            ? 'right-full mr-2 slide-in-from-right-2' 
-            : 'left-full ml-2 slide-in-from-left-2'
-        }`}>
+  {/* Description Panel - Last card on left, others on right */}
+  {(isHovered || isPinned) && overlayPos && typeof document !== 'undefined' && createPortal(
+        <div
+          className={`bg-zinc-900 rounded-lg p-4 shadow-2xl duration-200 w-[300px] h-[400px] flex flex-col z-50 transform-gpu will-change-transform`}
+          style={{
+            position: 'fixed',
+            top: overlayPos.top + 'px',
+            left: overlayPos.left + 'px',
+            transitionProperty: 'transform, opacity',
+            pointerEvents: 'auto',
+          }}
+        >
           {/* Action Buttons */}
           <div className="flex items-center space-x-2 mb-3 flex-shrink-0">
             <Button
               size="icon"
-              className="bg-white text-black hover:bg-gray-200 rounded-full h-8 w-8"
-              onClick={(e) => {
-                e.stopPropagation()
-                onPlayClick?.()
-              }}
-              aria-label="Play game"
-            >
-              <Play size={16} fill="currentColor" />
-            </Button>
-            <Button
-              size="icon"
               variant="outline"
-              className="border-gray-600 text-white hover:border-white rounded-full h-8 w-8"
+              className="card-btn-outline card-btn-icon rounded-full h-8 w-8"
               onClick={(e) => {
                 e.stopPropagation()
                 onAddToList?.()
@@ -95,7 +161,7 @@ export function GameCard({
             <Button
               size="icon"
               variant="outline"
-              className="border-gray-600 text-white hover:border-white rounded-full h-8 w-8"
+              className="card-btn-outline card-btn-icon rounded-full h-8 w-8"
               onClick={(e) => {
                 e.stopPropagation()
                 onLike?.()
@@ -104,22 +170,10 @@ export function GameCard({
             >
               <ThumbsUp size={16} />
             </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              className="border-gray-600 text-white hover:border-white rounded-full h-8 w-8 ml-auto"
-              onClick={(e) => {
-                e.stopPropagation()
-                onMoreInfo?.()
-              }}
-              aria-label="More info"
-            >
-              <ChevronDown size={16} />
-            </Button>
           </div>
 
           {/* Game Info - Takes up remaining space */}
-          <div className="flex-1 space-y-3 overflow-hidden">
+          <div className="flex-1 space-y-3 overflow-hidden pointer-events-auto">
             <h3 className="font-bold text-white text-lg">{game.name}</h3>
            
             {/* Rating and Genres */}
@@ -154,7 +208,8 @@ export function GameCard({
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

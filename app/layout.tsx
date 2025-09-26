@@ -3,6 +3,7 @@ import './globals.css'
 import { SidebarProvider, SidebarInset, SidebarFloatingTrigger } from '@/components/ui/sidebar'
 import { HeaderSearch } from '@/components/header-search'
 import { AppSidebar } from '@/components/app-sidebar'
+import { PinnedCardProvider } from '@/components/pinned-card-context'
 
 export const metadata: Metadata = {
   title: 'PlayMatch - Game Recommendations',
@@ -18,20 +19,26 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-black text-white font-netflix antialiased">
         <SidebarProvider defaultOpen={true}>
-          <AppSidebar />
+          <PinnedCardProvider>
+            <AppSidebar />
 
-          {/* Put header inside the inset so it's not pushed by the sidebar gap */}
-          {/* Collapsed toggle icon in the top-left corner */}
-          <SidebarFloatingTrigger />
-          <SidebarInset>
-            <header className="z-20 w-full border-b border-sidebar-border bg-background/60 backdrop-blur-sm">
-              <div className="mx-auto flex max-w-7xl items-center gap-4 p-3">
-                <HeaderSearch />
-              </div>
-            </header>
+            {/* Put header inside the inset so it's not pushed by the sidebar gap */}
+            {/* Collapsed toggle icon in the top-left corner */}
+            <SidebarFloatingTrigger />
+            <SidebarInset>
+              <header className="z-20 w-full bg-transparent">
+                <div className="mx-auto w-full max-w-3xl px-4 py-3">
+                  <div className="mx-auto bg-white/100 backdrop-blur-sm border border-sidebar-border rounded-xl shadow-sm">
+                    <div className="flex items-center gap-4 p-3">
+                      <HeaderSearch />
+                    </div>
+                  </div>
+                </div>
+              </header>
 
-            {children}
-          </SidebarInset>
+              {children}
+            </SidebarInset>
+          </PinnedCardProvider>
         </SidebarProvider>
       </body>
     </html>

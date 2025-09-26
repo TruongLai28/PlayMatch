@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { usePinnedCard } from '@/components/pinned-card-context'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +24,7 @@ interface GameRowProps {
   games: Game[]
   loading?: boolean
   showCount?: boolean
+  rowId?: string
 }
 
 // Loading skeleton for game row
@@ -51,9 +53,11 @@ function GameRowSkeleton() {
   )
 }
 
-export function GameRow({ title, games, loading = false, showCount = true }: GameRowProps) {
+export function GameRow({ title, games, loading = false, showCount = true, rowId }: GameRowProps) {
   const [scrollPosition, setScrollPosition] = useState(0)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const { pinnedInstanceId, setPinnedInstanceId } = usePinnedCard()
+  const stableRowId = rowId ?? title.replace(/\s+/g, '-').toLowerCase()
   const containerRef = useRef<HTMLDivElement>(null)
   
   const scroll = (direction: 'left' | 'right') => {
@@ -133,18 +137,22 @@ export function GameRow({ title, games, loading = false, showCount = true }: Gam
         {games.map((game, index) => (
           <div 
             key={game.id}
-            className={`flex-shrink-0 transition-all duration-300 ease-out ${
-              index === games.length - 1 ? '' : 'mr-4'
-            } ${
-              hoveredIndex !== null && index > hoveredIndex ? 'ml-[300px]' : ''
-            }`}
+            className={`flex-shrink-0 transform-gpu will-change-transform transition-transform duration-300 ease-out ${index === games.length - 1 ? '' : 'mr-4'}`}
             onMouseEnter={() => setHoveredIndex(index)}
             onMouseLeave={() => setHoveredIndex(null)}
+            onClick={(e) => {
+              e.stopPropagation()
+              const instanceId = `${game.id}-${stableRowId}-${index}`
+              setPinnedInstanceId(pinnedInstanceId === instanceId ? null : instanceId)
+            }}
+            style={{
+              transform: hoveredIndex !== null && index > hoveredIndex ? `translateX(${Math.min(280, (index - hoveredIndex) * 20)}px)` : undefined,
+            }}
           >
             <GameCard 
               game={game} 
               isLastCard={index === games.length - 1}
-              onPlayClick={() => console.log('Play clicked for:', game.name)}
+              isPinned={pinnedInstanceId === `${game.id}-${stableRowId}-${index}`}
               onAddToList={() => console.log('Add to list:', game.name)}
               onLike={() => console.log('Like:', game.name)}
               onMoreInfo={() => console.log('More info:', game.name)}

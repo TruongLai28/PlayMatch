@@ -67,7 +67,7 @@ class IGDBClient {
       fields name, cover.url, summary, rating, genres.name;
       search "${query}";
       where rating > 50 & category = 0;
-      limit 10;
+      limit 7;
     `
     
     return this.makeRequest('games', igdbQuery)
@@ -78,7 +78,7 @@ class IGDBClient {
       fields name, cover.url, summary, rating, genres.name, platforms.name;
       where rating > 80 & rating_count > 100 & category = 0;
       sort rating desc;
-      limit 10;
+      limit 7;
     `
     
     return this.makeRequest('games', igdbQuery)
@@ -91,7 +91,7 @@ class IGDBClient {
       fields name, cover.url, summary, rating, genres.name, release_dates.date;
       where release_dates.date > ${oneYearAgo} & rating > 60 & category = 0;
       sort release_dates.date desc;
-      limit 10;
+      limit 7;
     `
     
     return this.makeRequest('games', igdbQuery)
@@ -103,7 +103,7 @@ class IGDBClient {
       fields name, cover.url, summary, rating, genres.name;
       where rating > 75 & rating_count > 50 & category = 0;
       sort rating desc;
-      limit 10;
+      limit 7;
     `
     
     return this.makeRequest('games', igdbQuery)
@@ -125,7 +125,7 @@ class IGDBClient {
       fields name, cover.url, summary, rating, genres.name;
       where similar_games = ${gameId} & rating > 60;
       sort rating desc;
-      limit 10;
+      limit 7;
     `
     
     return this.makeRequest('games', igdbQuery)

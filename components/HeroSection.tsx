@@ -1,6 +1,6 @@
 'use client'
 
-import { Play, Info } from 'lucide-react'
+import { Info } from 'lucide-react'
 
 interface Game {
   id: number
@@ -73,10 +73,6 @@ export function HeroSection({ game }: HeroSectionProps) {
 
           {/* Action Buttons */}
           <div className="flex space-x-4 pt-4">
-            <button className="bg-white text-black px-6 py-3 rounded flex items-center space-x-2 hover:bg-gray-200 transition-colors">
-              <Play size={20} fill="currentColor" />
-              <span className="font-semibold">Play Now</span>
-            </button>
             <button className="bg-gray-600/70 text-white px-6 py-3 rounded flex items-center space-x-2 hover:bg-gray-600 transition-colors">
               <Info size={20} />
               <span>More Info</span>

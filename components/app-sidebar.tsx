@@ -24,7 +24,8 @@ import {
   Gamepad2,
   TrendingUp,
   Clock,
-  Star
+  Star,
+  Sparkles
 } from "lucide-react"
 
 // Menu items for navigation
@@ -47,6 +48,11 @@ const mainNavItems = [
 ]
 
 const discoverItems = [
+  {
+    title: "Get Recommendations",
+    url: "/recommendations",
+    icon: Sparkles,
+  },
   {
     title: "Popular Games",
     url: "/popular",
@@ -84,14 +90,16 @@ const personalItems = [
 
 export function AppSidebar() {
   return (
-    <Sidebar className="border-sidebar-border bg-sidebar">
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Gamepad2 className="h-6 w-6 text-sidebar-primary" />
-            <span className="font-bold text-lg text-sidebar-foreground">PlayMatch</span>
-          </div>
-          {/* Toggle placed on the sidebar header */}
+    <Sidebar className="border-2 border-sidebar-border bg-sidebar">
+      <SidebarHeader className="p-4 border-b-2 border-sidebar-border relative">
+        {/* Centered title + icon */}
+        <div className="flex items-center justify-center gap-2 -translate-x-2">
+          <Gamepad2 className="h-6 w-6 text-sidebar-primary" />
+          <span className="font-bold text-lg text-sidebar-foreground">PlayMatch</span>
+        </div>
+
+        {/* Keep toggle visible in the header but absolutely positioned so it doesn't affect centering */}
+        <div className="absolute top-2 right-2">
           <SidebarTrigger />
         </div>
       </SidebarHeader>
@@ -154,7 +162,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
+  <SidebarFooter className="p-4 border-t-2 border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="text-sidebar-foreground hover:bg-sidebar-accent">
