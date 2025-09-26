@@ -85,6 +85,54 @@ class IGDBClient {
     );
     return response.data;
   }
+
+  //get pop games based on # of vists of game's IGDB page
+ async getPopularReleasedGames(limit: number = 10, offset: number = 0, popularityTypeId: number = 4) {
+  const token = await this.getAccessToken();
+
+  //Fetch top game IDs by popularity type
+  const primitivesResponse = await axios.post(
+    "https://api.igdb.com/v4/popularity_primitives",
+    `
+      fields game_id,value,popularity_type;
+      where popularity_type = ${popularityTypeId};
+      sort value desc;
+      limit ${limit};
+      offset ${offset};
+    `,
+    {
+      headers: {
+        "Client-ID": this.clientId,
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const topGames = primitivesResponse.data;
+  if (!topGames || topGames.length === 0) return [];
+
+  const gameIds = topGames.map((g: any) => g.game_id).join(",");
+
+  // get full game details
+  const gamesResponse = await axios.post(
+    "https://api.igdb.com/v4/games",
+    `
+      fields id,name,cover.url,rating,total_rating,first_release_date,genres.name,platforms.name,summary,screenshots.url;
+      where id = (${gameIds}) & first_release_date != null & first_release_date < ${Math.floor(Date.now() / 1000)};
+      sort total_rating desc;
+    `,
+    {
+      headers: {
+        "Client-ID": this.clientId,
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return gamesResponse.data; // array of game objects
+}
+
+
 }
 
 export const igdbClient = new IGDBClient();
