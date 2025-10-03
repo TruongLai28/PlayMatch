@@ -116,8 +116,7 @@ class IGDBClient {
   // get full game details
   const gamesResponse = await axios.post(
     "https://api.igdb.com/v4/games",
-    `
-      fields id,name,cover.url,rating,total_rating,first_release_date,genres.name,platforms.name,summary,screenshots.url;
+      `fields name,cover.url,rating,first_release_date,genres.name,platforms.name,summary,themes.name,keywords.name,game_modes.name,player_perspectives.name,age_ratings.rating,age_ratings.category,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,release_dates.date,release_dates.platform.name,similar_games.name,screenshots.url; 
       where id = (${gameIds}) & first_release_date != null & first_release_date < ${Math.floor(Date.now() / 1000)};
       sort total_rating desc;
     `,
