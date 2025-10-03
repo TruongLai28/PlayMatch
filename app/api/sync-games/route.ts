@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { igdbClient } from '../../../lib/igdb'
 import { supabase } from '../../../lib/supabase'
+import { request } from 'http'
 
 /**
  * @swagger
@@ -8,14 +9,19 @@ import { supabase } from '../../../lib/supabase'
  *   post:
  *     tags:
  *       - Database Sync
- *     summary: Sync games from IGDB to Supabase
- *     description: Fetches games from IGDB and inserts them into the Supabase games table
+ *     summary: Sync top popular games from IGDB to Supabase
+ *     description: Fetches the most popular/highly-rated games from IGDB and inserts them into the Supabase games table
  *     parameters:
  *       - in: query
  *         name: limit
  *         schema:
  *           type: number
- *         description: Number of games to sync (default 10, max 50)
+ *         description: Number of games to sync (default 50, max 500)
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: number
+ *         description: Offset for pagination (default 0)
  *     responses:
  *       200:
  *         description: Games synced successfully
@@ -25,11 +31,11 @@ import { supabase } from '../../../lib/supabase'
 export async function POST(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const validatedLimit = Math.min(Math.max(limit, 1), 50)
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const offset = parseInt(searchParams.get('offset') || '0')
+    const validatedLimit = Math.min(Math.max(limit, 1), 500)
 
-    // Fetch games from IGDB
-    const igdbGames = await igdbClient.getAllGames(validatedLimit, 0)
+    const igdbGames = await igdbClient.getPopularReleasedGames(validatedLimit, offset)
     
     if (!igdbGames || igdbGames.length === 0) {
       return NextResponse.json({ error: 'No games fetched from IGDB' }, { status: 400 })
@@ -73,9 +79,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ 
-      message: `Successfully synced ${gamesToInsert.length} games`,
+      message: `Successfully synced ${gamesToInsert.length} popular games`,
       inserted: data?.length || 0,
-      games: data?.map(game => ({ id: game.id, name: game.name })) || []
+      games: data?.map(game => ({ id: game.id, name: game.name, rating: game.rating })) || [],
+      tip: `To sync more games, use offset parameter. Example: offset=${offset + validatedLimit}`
     })
 
   } catch (error) {
@@ -114,12 +121,74 @@ export async function GET() {
 
     return NextResponse.json({ 
       message: `Database currently has ${count} games`,
-      count
+      count,
+      tip: 'Target: 10,000 games for recommendation engine'
     })
 
   } catch (error) {
     return NextResponse.json({ 
       error: 'Failed to check database',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
+  }
+}
+
+/**
+ * @swagger
+ * /api/sync-games:
+ *   delete:
+ *     tags:
+ *       - Database Sync
+ *     summary: Clear all games from database (TESTING ONLY)
+ *     description: Deletes all games from the Supabase games table. Use with caution!
+ *     parameters:
+ *       - in: query
+ *         name: confirm
+ *         schema:
+ *           type: string
+ *         description: Must be set to "yes" to confirm deletion
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: All games deleted successfully
+ *       400:
+ *         description: Confirmation required
+ *       500:
+ *         description: Deletion failed
+ */
+export async function DELETE(request: NextRequest){
+  try {
+    const { searchParams } = new URL(request.url);
+    const confirm = searchParams.get('confirm');
+
+    if (confirm !== 'yes') {
+      return NextResponse.json({ 
+        error: 'Confirmation required',
+        message: 'Add ?confirm=yes to the URL to confirm deletion of all games'
+      }, { status: 400 })
+    }
+    const { error } = await supabase
+      .from('games')
+      .delete()
+      .neq('id', 0) // This matches all rows (id is never 0)
+
+    if (error) {
+      console.error('Supabase delete error:', error)
+      return NextResponse.json({ 
+        error: 'Failed to delete games from database',
+        details: error.message 
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({ 
+      message: 'Successfully deleted all games from database',
+      warning: 'Database is now empty. Use POST to sync games again.'
+    })
+
+  } catch (error) {
+    console.error('Delete error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to delete games',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
