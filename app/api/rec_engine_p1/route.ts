@@ -8,7 +8,7 @@ import { igdbClient } from '../../../lib/igdb'
  *   post:
  *     tags:
  *       - Recommendation
- *     summary:(UNDER CONSTRUCTION) Get top games per genre from DB + IGDB
+ *     summary: (UNDER CONSTRUCTION) Get top games per genre from DB + IGDB
  *     description: For each genre of the seed game, fetch top 10 DB games and top 10 IGDB games.
  *     parameters:
  *       - in: query
