@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { igdbClient } from '../../../lib/igdb'
 import { supabase } from '../../../lib/supabase'
+import { igdbClient } from '../../../lib/igdb'
 
 /**
  * @swagger
@@ -8,53 +8,34 @@ import { supabase } from '../../../lib/supabase'
  *   post:
  *     tags:
  *       - Recommendation
- *     summary: UNDER CONSTRUCTION! Get a pool of games (<=20 DB + 20 IGDB)
- *     description: Returns 20 or less games from the database and 20 from IGDB outside of the database. Also returns along with JSON data but is very messy rn..
+ *     summary:(UNDER CONSTRUCTION) Get top games per genre from DB + IGDB
+ *     description: For each genre of the seed game, fetch top 10 DB games and top 10 IGDB games.
  *     parameters:
  *       - in: query
- *         name: GameId
+ *         name: seedGameId
  *         schema:
  *           type: number
- *         description: ID of the game to base recommendations on
+ *         required: true
+ *         description: ID of the seed game
  *     responses:
  *       200:
- *         description: Pool fetched successfully
+ *         description: Recommendation Pool fetched successfully
  *       400:
- *         description: Missing GameId
+ *         description: Missing seedGameId
  *       404:
- *         description: game not found
+ *         description: Seed game not found
  *       500:
- *         description: Failed to fetch pool! DAMN!
+ *         description: Failed to fetch recommendations, DAMN
  */
 export async function POST(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const seedGameId = parseInt(searchParams.get('seedGameId') || '')
-
     if (!seedGameId) return NextResponse.json({ error: 'seedGameId required' }, { status: 400 })
 
-    
-    //scoring functions
-    const overlapScore = (seedArr: any[] = [], gameArr: any[] = []) => {
-      if (!seedArr?.length || !gameArr?.length) return 0
-      const seedIds = seedArr.map(x => x.id)
-      const matches = gameArr.filter(x => seedIds.includes(x.id))
-      return matches.length / seedArr.length
-    }
+    console.log('Incoming seedGameId:', seedGameId)
 
-    const developerScore = (seedDevs: any[] = [], gameDevs: any[] = []) => {
-      if (!seedDevs?.length || !gameDevs?.length) return 0
-      const seedNames = seedDevs.map(d => d.company.name)
-      const matches = gameDevs.filter(d => seedNames.includes(d.company.name))
-      return matches.length ? 0.5 : 0 // boost if same dev
-    }
-
-    const collectionScore = (seedCollection: any, gameCollection: any) => {
-      if (!seedCollection || !gameCollection) return 0
-      return seedCollection.name === gameCollection.name ? 0.7 : 0 // boost if same franchise
-    }
-
-    //get game from DB, fallback on IGDB API if not there
+    //fetch seed game DB
     let { data: seedGame } = await supabase
       .from('games')
       .select('*')
@@ -62,95 +43,87 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!seedGame) {
+      //fallback to IGDB
       const igdbSeedBody = `
-        fields id,name,summary,rating,genres.name,keywords.name,themes.name,
-        platforms.name,involved_companies.company.name,cover.url,collection.name;
+        fields id,name,genres.id,genres.name,rating,cover.url;
         where id = ${seedGameId};
         limit 1;
       `
-      const igdbResult: any[] = await igdbClient.apiRequest('games', igdbSeedBody)
-      if (!igdbResult?.length) return NextResponse.json({ error: 'Seed game not found anywhere' }, { status: 404 })
+      const igdbResult = await igdbClient.apiRequest('games', igdbSeedBody)
+      if (!igdbResult?.length) return NextResponse.json({ error: 'Seed game not found' }, { status: 404 })
       seedGame = igdbResult[0]
+      console.log('Seed game fetched from IGDB:', seedGame.name)
+    } else {
+      console.log('Seed game found in DB:', seedGame.name)
     }
 
-    
-    //get pool of 20 games from db only
-    const { data: dbGames } = await supabase
-      .from('games')
-      .select('*')
-      .neq('id', seedGameId)
-      .order('rating', { ascending: false })
-      .limit(20)
+    const genres = seedGame.genres || []
+    if (!genres.length) return NextResponse.json({ error: 'Seed game has no genres' }, { status: 404 })
+    console.log('Seed game genres:', genres.map((g: any) => g.name))
 
-    const dbPool = dbGames || []
+    //maps for removing dups
+    const dbResultsMap: Record<number, any> = {}
+    const igdbResultsMap: Record<number, any> = {}
 
-    //scoring shit for db
-    const boostedDB = dbPool.map(g => {
-      const overlapBoost =
-        overlapScore(seedGame.genres, g.genres) +
-        developerScore(seedGame.involved_companies, g.involved_companies) +
-        collectionScore(seedGame.collection, g.collection)
-      return {
-        ...g,
-        score: ((g.rating || 0) / 100) + overlapBoost // boost all games
+    for (const genre of genres) {
+      console.log(`Fetching top DB games for genre ID: ${genre.id}`)
+
+      //db top 10 per genre
+      let { data: dbGames, error: dbError } = await supabase
+        .from('games')
+        .select('*')
+        .neq('id', seedGameId)
+        .filter('genres', 'cs', JSON.stringify([{ id: genre.id }]))
+        .order('rating', { ascending: false })
+        .limit(10)
+
+      if (dbError) console.error('Supabase error:', dbError)
+      dbGames = dbGames || []
+      dbGames.forEach((g: any) => { if (!dbResultsMap[g.id]) dbResultsMap[g.id] = g })
+
+      console.log(
+        `DB games for genre ${genre.id}:`,
+        JSON.stringify(dbGames.map((g: any) => ({ id: g.id, name: g.name, rating: g.rating })), null, 2)
+      )
+
+      //IGDB top 10 per genre, excluding DB games already fetched
+      const dbIds = new Set(Object.keys(dbResultsMap).map(id => parseInt(id)))
+      const igdbBody = `
+        fields id,name,genres.id,genres.name,rating,total_rating,cover.url;
+        where genres = (${genre.id}) & id != ${seedGameId} ${dbIds.size ? `& id != (${[...dbIds].join(',')})` : ''};
+        sort total_rating desc;
+        limit 10;
+      `
+      const igdbGames = await igdbClient.apiRequest('games', igdbBody)
+      if (igdbGames?.length) {
+        igdbGames.forEach((g: any) => { if (!igdbResultsMap[g.id]) igdbResultsMap[g.id] = g })
+
+        console.log(
+          `IGDB games for genre ${genre.id}:`,
+          JSON.stringify(igdbGames.map((g: any) => ({ id: g.id, name: g.name, total_rating: g.total_rating })), null, 2)
+        )
       }
-    })
+    }
 
-    //sort by updated score
-    boostedDB.sort((a, b) => b.score - a.score)
-    const topDBPool = boostedDB.slice(0, 20)
+    const dbResultsFinal = Object.values(dbResultsMap)
+    const igdbResultsFinal = Object.values(igdbResultsMap)
 
-    
-    //IGDB pool outside db
-    const igdbBody = `
-      fields id, name, cover.url, first_release_date, total_rating, summary,
-        genres.name, themes.name, keywords.name,
-        platforms.name, involved_companies.company.name, collection.name, url;
-      where id != ${seedGameId};
-      sort total_rating desc;
-      limit 40;
-    `
-    let igdbGames: any[] = await igdbClient.apiRequest('games', igdbBody)
-    const dbIds = new Set(topDBPool.map((g: any) => g.id))
-    igdbGames = igdbGames.filter(g => !dbIds.has(g.id)).slice(0, 20)
+    console.log(
+      'Total DB recommended games:',
+      JSON.stringify(dbResultsFinal.map(g => ({ id: g.id, name: g.name, rating: g.rating })), null, 2)
+    )
+    console.log(
+      'Total IGDB recommended games:',
+      JSON.stringify(igdbResultsFinal.map(g => ({ id: g.id, name: g.name, total_rating: g.total_rating })), null, 2)
+    )
 
-    //scoring shit again IGDB
-    let scoredIGDB = igdbGames.map((g: any) => ({
-      ...g,
-      score:
-        (g.total_rating || 0) / 100 +
-        overlapScore(seedGame.genres, g.genres) +
-        overlapScore(seedGame.keywords, g.keywords) +
-        overlapScore(seedGame.themes, g.themes) +
-        developerScore(seedGame.involved_companies, g.involved_companies) +
-        collectionScore(seedGame.collection, g.collection)
-    }))
-
-    //boosting score with developer and franchise overlap
-    const boostedIGDB = scoredIGDB.map(g => {
-      const overlapBoost =
-        overlapScore(seedGame.genres, g.genres) +
-        developerScore(seedGame.involved_companies, g.involved_companies) +
-        collectionScore(seedGame.collection, g.collection)
-      return {
-        ...g,
-        score: g.score + overlapBoost // boost all
-      }
-    })
-
-    //sort by updated score
-    boostedIGDB.sort((a, b) => b.score - a.score)
-    const topIGDBPool = boostedIGDB.slice(0, 20)
-
-    
-    //return full 40 game pool
     return NextResponse.json({
       seed: seedGame,
-      dbPool: topDBPool,
-      igdbPool: topIGDBPool
+      dbPool: dbResultsFinal,
+      igdbPool: igdbResultsFinal
     })
   } catch (err) {
-    console.error('Recommendation pool error:', err)
-    return NextResponse.json({ error: 'Failed to fetch game pool' }, { status: 500 })
+    console.error('Error fetching recommendation pool:', err)
+    return NextResponse.json({ error: 'Failed to fetch recommendation pool' }, { status: 500 })
   }
 }
