@@ -18,12 +18,10 @@ import {
   Search, 
   Library, 
   Heart, 
-  Download, 
   Settings, 
   User,
   Gamepad2,
   TrendingUp,
-  Clock,
   Star,
   Sparkles
 } from "lucide-react"
@@ -75,16 +73,6 @@ const personalItems = [
     title: "Favorites",
     url: "/favorites",
     icon: Heart,
-  },
-  {
-    title: "Recently Played",
-    url: "/recent",
-    icon: Clock,
-  },
-  {
-    title: "Downloads",
-    url: "/downloads",
-    icon: Download,
   },
 ]
 

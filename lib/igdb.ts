@@ -130,6 +130,11 @@ class IGDBClient {
     
     return this.makeRequest('games', igdbQuery)
   }
+
+  // Alias for backwards compatibility with rec-engine route
+  async apiRequest(endpoint: string, query: string): Promise<Game[]> {
+    return this.makeRequest(endpoint, query)
+  }
 }
 
 export const igdbClient = new IGDBClient()
