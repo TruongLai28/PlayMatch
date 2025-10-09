@@ -29,7 +29,7 @@ interface SearchResult {
 
 interface RecommendationResponse {
   seed: Game
-  dbPool: Game[]
+  dbScored: Game[]
   igdbPool: Game[]
 }
 
@@ -175,7 +175,7 @@ export default function RecommendationsPage() {
 
 
 
-  const allGames = recommendations ? [...recommendations.dbPool, ...recommendations.igdbPool] : []
+  const allGames = recommendations ? [...recommendations.dbScored, ...recommendations.igdbPool] : []
 
   if (loading) {
     return (
@@ -321,7 +321,7 @@ export default function RecommendationsPage() {
             {!filter && recommendations && (
               <>
                 <Badge variant="outline">
-                  {recommendations.dbPool.length} from database
+                  {recommendations.dbScored.length} from database
                 </Badge>
                 <Badge variant="outline">
                   {recommendations.igdbPool.length} from IGDB
@@ -342,8 +342,8 @@ export default function RecommendationsPage() {
         <GameGrid games={categoryGames} />
       ) : recommendations && allGames.length > 0 ? (
         <div className="space-y-8">
-          {recommendations.dbPool.length > 0 && (
-            <GameGrid games={recommendations.dbPool} title="From Our Database" />
+          {recommendations.dbScored.length > 0 && (
+            <GameGrid games={recommendations.dbScored} title="From Our Database" />
           )}
           {recommendations.igdbPool.length > 0 && (
             <GameGrid games={recommendations.igdbPool} title="From IGDB" />
