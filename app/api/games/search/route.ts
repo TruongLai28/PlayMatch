@@ -8,103 +8,82 @@ import { igdbClient } from '../../../../lib/igdb'
  *   get:
  *     tags:
  *       - Games
- *     summary: Search for games by name
- *     description: Search for games by name in both Supabase and IGDB
+ *     summary: Get game by seed ID
+ *     description: Retrieve a specific game by seed ID from both Supabase and IGDB
  *     parameters:
  *       - in: query
- *         name: q
- *         schema:
- *           type: string
- *         required: true
- *         description: Game name to search for
- *       - in: query
- *         name: limit
+ *         name: seedId
  *         schema:
  *           type: number
- *         description: Maximum number of results (default 10)
+ *         required: true
+ *         description: Specific game ID to retrieve
  *     responses:
  *       200:
- *         description: Search results from both databases
+ *         description: Game data retrieved successfully
  *       400:
- *         description: Missing search query
+ *         description: Missing seed ID
+ *       404:
+ *         description: Game not found
  *       500:
  *         description: Search failed
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const query = searchParams.get('q')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const seedId = parseInt(searchParams.get('seedId') || '')
 
-    if (!query) {
-      return NextResponse.json({ error: 'Search query required' }, { status: 400 })
+    if (!seedId) {
+      return NextResponse.json({ error: 'seedId is required' }, { status: 400 })
     }
 
-    console.log(`Searching for games with name: "${query}"`)
-
-    // Search in Supabase first
-    const { data: supabaseGames, error: supabaseError } = await supabase
+    console.log(`Getting game by seed ID: ${seedId}`)
+    
+    // Try Supabase first
+    let { data: supabaseGame, error: supabaseError } = await supabase
       .from('games')
-      .select('id, name, rating, genres, summary')
-      .ilike('name', `%${query}%`)
-      .order('rating', { ascending: false })
-      .limit(limit)
+      .select('id, name, rating, genres, summary, companies, cover_url')
+      .eq('id', seedId)
+      .single()
 
-    if (supabaseError) {
-      console.error('Supabase search error:', supabaseError)
-    }
+    let seedGame: any = null
 
-    // Search in IGDB
-    let igdbGames: any[] = []
-    try {
-      const igdbQuery = `
-        fields id,name,genres.id,genres.name,rating,total_rating,cover.url,summary;
-        search "${query}";
-        where rating > 50 & category = 0;
-        limit ${limit};
-      `
-      igdbGames = await igdbClient.apiRequest('games', igdbQuery) || []
-    } catch (igdbError) {
-      console.error('IGDB search error:', igdbError)
-    }
-
-    // Combine and deduplicate results
-    const combinedResults = []
-    const seenIds = new Set()
-
-    // Add Supabase results first (they might be more accurate)
-    if (supabaseGames) {
-      for (const game of supabaseGames) {
-        if (!seenIds.has(game.id)) {
-          combinedResults.push({
-            ...game,
-            source: 'database',
-            cover: null // Supabase games don't have covers
-          })
-          seenIds.add(game.id)
-        }
-      }
-    }
-
-    // Add IGDB results
-    if (igdbGames) {
-      for (const game of igdbGames) {
-        if (!seenIds.has(game.id)) {
-          combinedResults.push({
-            ...game,
+    // If not found in Supabase, try IGDB
+    if (!supabaseGame) {
+      try {
+        const igdbQuery = `
+          fields id,name,genres.id,genres.name,rating,total_rating,cover.url,summary,involved_companies.company.id,involved_companies.company.name;
+          where id = ${seedId};
+          limit 1;
+        `
+        const igdbResult = await igdbClient.apiRequest('games', igdbQuery)
+        
+        if (igdbResult?.length) {
+          seedGame = {
+            ...igdbResult[0],
             source: 'igdb'
-          })
-          seenIds.add(game.id)
+          }
         }
+      } catch (igdbError) {
+        console.error('IGDB seed search error:', igdbError)
+      }
+    } else {
+      seedGame = {
+        ...supabaseGame,
+        source: 'database',
+        // Transform cover_url to cover.url format to match IGDB structure
+        cover: supabaseGame.cover_url ? { url: supabaseGame.cover_url } : null
       }
     }
 
-    console.log(`Found ${combinedResults.length} games matching "${query}"`)
+    if (!seedGame) {
+      return NextResponse.json({ error: 'Game not found' }, { status: 404 })
+    }
 
     return NextResponse.json({
-      query,
-      results: combinedResults,
-      total: combinedResults.length
+      seedId,
+      results: [seedGame],
+      total: 1,
+      isSeedSearch: true
     })
 
   } catch (err) {

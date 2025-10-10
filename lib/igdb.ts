@@ -84,6 +84,30 @@ class IGDBClient {
     return this.makeRequest('games', igdbQuery)
   }
 
+  async getPopularReleasedGames(
+    limit: number = 10,
+    offset: number = 0
+  ): Promise<Game[]> {
+    const token = await this.getAccessToken();
+
+    const response = await axios.post(
+      "https://api.igdb.com/v4/games",
+      `fields name,cover.url,rating,first_release_date,genres.name,platforms.name,summary,themes.name,keywords.name,game_modes.name,player_perspectives.name,age_ratings.rating,age_ratings.category,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,release_dates.date,release_dates.platform.name,similar_games.name,screenshots.url; 
+      where rating > 60 & rating_count > 10 & first_release_date != null & first_release_date < ${Math.floor(Date.now() / 1000)}; 
+      sort rating desc; 
+      limit ${limit}; 
+      offset ${offset};`,
+      {
+        headers: {
+          "Client-ID": this.clientId,
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response.data;
+  }
+
   async getNewReleases(): Promise<Game[]> {
     const oneYearAgo = Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000)
     

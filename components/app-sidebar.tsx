@@ -30,7 +30,7 @@ import {
 const mainNavItems = [
   {
     title: "Home",
-    url: "/",
+    url: "/home",
     icon: Home,
   },
   {
@@ -79,11 +79,11 @@ const personalItems = [
 export function AppSidebar() {
   return (
     <Sidebar className="border-2 border-sidebar-border bg-sidebar">
-      <SidebarHeader className="p-4 border-b-2 border-sidebar-border relative">
+      <SidebarHeader className="p-4 border-b-2 border-sidebar-border relative bg-gradient-to-r from-sidebar-bg to-sidebar-accent">
         {/* Centered title + icon */}
-        <div className="flex items-center justify-center gap-2 -translate-x-2">
-          <Gamepad2 className="h-6 w-6 text-sidebar-primary" />
-          <span className="font-bold text-lg text-sidebar-foreground">PlayMatch</span>
+        <div className="flex items-center justify-center gap-3 -translate-x-2">
+          <Gamepad2 className="h-7 w-7 text-sidebar-primary" />
+          <span className="font-bold text-xl text-sidebar-foreground tracking-tight">PlayMatch</span>
         </div>
 
         {/* Keep toggle visible in the header but absolutely positioned so it doesn't affect centering */}
@@ -99,10 +99,10 @@ export function AppSidebar() {
             <SidebarMenu>
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="text-sidebar-foreground hover:bg-sidebar-accent">
-                    <a href={item.url} className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                  <SidebarMenuButton asChild>
+                    <a href={item.url} className="flex items-center gap-3 p-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-primary transition-all duration-200 rounded-lg focus:outline-none focus:ring-0 focus:ring-offset-0 focus:shadow-none !outline-none" style={{outline: 'none !important', boxShadow: 'none !important'}}>
+                      <item.icon className="h-5 w-5" />
+                      <span className="font-medium">{item.title}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -113,15 +113,15 @@ export function AppSidebar() {
 
         {/* Discover Section */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/70">Discover</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-primary font-semibold uppercase tracking-wider text-sm">Discover</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {discoverItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="text-sidebar-foreground hover:bg-sidebar-accent">
-                    <a href={item.url} className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                  <SidebarMenuButton asChild>
+                    <a href={item.url} className="flex items-center gap-3 p-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-primary transition-all duration-200 rounded-lg focus:outline-none focus:ring-0 focus:ring-offset-0 focus:shadow-none !outline-none" style={{outline: 'none !important', boxShadow: 'none !important'}}>
+                      <item.icon className="h-5 w-5" />
+                      <span className="font-medium">{item.title}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -132,15 +132,15 @@ export function AppSidebar() {
 
         {/* Personal Section */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/70">Your Games</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-primary font-semibold uppercase tracking-wider text-sm">Your Games</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {personalItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="text-sidebar-foreground hover:bg-sidebar-accent">
-                    <a href={item.url} className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                  <SidebarMenuButton asChild>
+                    <a href={item.url} className="flex items-center gap-3 p-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-primary transition-all duration-200 rounded-lg focus:outline-none focus:ring-0 focus:ring-offset-0 focus:shadow-none !outline-none" style={{outline: 'none !important', boxShadow: 'none !important'}}>
+                      <item.icon className="h-5 w-5" />
+                      <span className="font-medium">{item.title}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -150,21 +150,21 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-  <SidebarFooter className="p-4 border-t-2 border-sidebar-border">
+  <SidebarFooter className="p-4 border-t-2 border-sidebar-border bg-gradient-to-r from-sidebar-bg to-sidebar-accent">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="text-sidebar-foreground hover:bg-sidebar-accent">
-              <a href="/profile" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span>Profile</span>
+            <SidebarMenuButton asChild>
+              <a href="/profile" className="flex items-center gap-3 p-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-primary transition-all duration-200 rounded-lg focus:outline-none focus:ring-0 focus:ring-offset-0 focus:shadow-none !outline-none" style={{outline: 'none !important', boxShadow: 'none !important'}}>
+                <User className="h-5 w-5" />
+                <span className="font-medium">Profile</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="text-sidebar-foreground hover:bg-sidebar-accent">
-              <a href="/settings" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
+            <SidebarMenuButton asChild>
+              <a href="/settings" className="flex items-center gap-3 p-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-primary transition-all duration-200 rounded-lg focus:outline-none focus:ring-0 focus:ring-offset-0 focus:shadow-none !outline-none" style={{outline: 'none !important', boxShadow: 'none !important'}}>
+                <Settings className="h-5 w-5" />
+                <span className="font-medium">Settings</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

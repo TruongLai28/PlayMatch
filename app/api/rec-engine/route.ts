@@ -58,6 +58,15 @@ export async function POST(request: NextRequest) {
       .single()
     //if (seedError) console.error('Supabase seed fetch error:', seedError)
     
+    // Transform Supabase seed game to match IGDB format if found
+    if (seedGame) {
+      seedGame = {
+        ...seedGame,
+        // Convert cover_url to cover.url format to match IGDB structure
+        cover: seedGame.cover_url ? { url: seedGame.cover_url } : null
+      }
+    }
+    
     // fallback to igdb if game not in supabase 
     if (!seedGame) {
       const igdbSeedBody = `
@@ -133,7 +142,18 @@ export async function POST(request: NextRequest) {
       const genreScore = genreOverlapScore(seedGame.genres, candidateGenres)
       const companyScore = companyOverlapScore(seedGame.companies, candidateCompanies)
       const finalScore = genreScore * 0.7 + companyScore * 0.3 //70% for genre. 30% for companies for now. 
-      return { ...game, genreScore, companyScore, finalScore }
+      
+      // Transform Supabase game to match IGDB format for frontend compatibility
+      const transformedGame = {
+        ...game,
+        genreScore,
+        companyScore,
+        finalScore,
+        // Convert cover_url to cover.url format to match IGDB structure
+        cover: game.cover_url ? { url: game.cover_url } : null
+      }
+      
+      return transformedGame
     })
 
     // force a game in the list to be scored
@@ -153,7 +173,18 @@ export async function POST(request: NextRequest) {
         const genreScore = genreOverlapScore(seedGame.genres, candidateGenres)
         const companyScore = companyOverlapScore(seedGame.companies, candidateCompanies)
         const finalScore = genreScore * 0.7 + companyScore * 0.3
-        dbScored.push({ ...testGame, genreScore, companyScore, finalScore })
+        
+        // Transform test game to match IGDB format
+        const transformedTestGame = {
+          ...testGame,
+          genreScore,
+          companyScore,
+          finalScore,
+          // Convert cover_url to cover.url format to match IGDB structure
+          cover: testGame.cover_url ? { url: testGame.cover_url } : null
+        }
+        
+        dbScored.push(transformedTestGame)
       }
     }
 

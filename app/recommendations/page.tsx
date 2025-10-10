@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Sparkles, RefreshCw, Search, Gamepad2, X, TrendingUp, Star, Clock } from 'lucide-react'
+import { CategoryBar } from '@/components/CategoryBar'
 
 interface Game {
   id: number
@@ -21,12 +22,6 @@ interface Game {
   source?: string
 }
 
-interface SearchResult {
-  query: string
-  results: Game[]
-  total: number
-}
-
 interface RecommendationResponse {
   seed: Game
   dbScored: Game[]
@@ -36,66 +31,27 @@ interface RecommendationResponse {
 export default function RecommendationsPage() {
   const searchParams = useSearchParams()
   const filter = searchParams.get('filter')
+  const seedId = searchParams.get('seedId')
   
   const [recommendations, setRecommendations] = useState<RecommendationResponse | null>(null)
   const [categoryGames, setCategoryGames] = useState<Game[]>([])
   const [loading, setLoading] = useState(false)
-  const [searchLoading, setSearchLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchInput, setSearchInput] = useState<string>('')
-  const [searchResults, setSearchResults] = useState<Game[]>([])
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null)
-  const [showSearchResults, setShowSearchResults] = useState(false)
+  const [seedGameName, setSeedGameName] = useState<string>('')
 
-  // Search for games by name
-  const searchGames = async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([])
-      setShowSearchResults(false)
-      return
-    }
 
-    try {
-      setSearchLoading(true)
-      const response = await fetch(`/api/games/search?q=${encodeURIComponent(query)}&limit=5`)
-      
-      if (!response.ok) {
-        throw new Error('Search failed')
-      }
-      
-      const data: SearchResult = await response.json()
-      setSearchResults(data.results)
-      setShowSearchResults(true)
-    } catch (err) {
-      console.error('Search error:', err)
-      setSearchResults([])
-    } finally {
-      setSearchLoading(false)
-    }
-  }
-
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchInput && !selectedGame) {
-        searchGames(searchInput)
-      }
-    }, 300)
-
-    return () => clearTimeout(timer)
-  }, [searchInput, selectedGame])
 
   const fetchRecommendations = async (gameId?: number) => {
-    const targetGameId = gameId || selectedGame?.id
+    const targetGameId = gameId || parseInt(searchInput)
     if (!targetGameId) {
-      setError('Please select a game to get recommendations')
+      setError('Please enter a game ID to get recommendations')
       return
     }
 
     try {
       setLoading(true)
       setError(null)
-      setShowSearchResults(false)
       
       const response = await fetch(`/api/rec-engine?seedGameId=${targetGameId}`, {
         method: 'POST'
@@ -108,27 +64,17 @@ export default function RecommendationsPage() {
       
       const data: RecommendationResponse = await response.json()
       setRecommendations(data)
+      setSeedGameName(data.seed.name)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
       setRecommendations(null)
+      setSeedGameName('')
     } finally {
       setLoading(false)
     }
   }
 
-  const selectGame = (game: Game) => {
-    setSelectedGame(game)
-    setSearchInput(game.name)
-    setShowSearchResults(false)
-    setSearchResults([])
-  }
 
-  const clearSelection = () => {
-    setSelectedGame(null)
-    setSearchInput('')
-    setShowSearchResults(false)
-    setSearchResults([])
-  }
 
   // Fetch games based on category filter
   const fetchCategoryGames = async (category: string) => {
@@ -173,7 +119,16 @@ export default function RecommendationsPage() {
     }
   }, [filter])
 
-
+  // Auto-load recommendations if seedId is provided in URL
+  useEffect(() => {
+    if (seedId) {
+      const gameId = parseInt(seedId)
+      if (!isNaN(gameId)) {
+        setSearchInput(seedId)
+        fetchRecommendations(gameId)
+      }
+    }
+  }, [seedId])
 
   const allGames = recommendations ? [...recommendations.dbScored, ...recommendations.igdbPool] : []
 
@@ -190,6 +145,9 @@ export default function RecommendationsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Category Bar */}
+      <CategoryBar />
+      
       {/* Header Section */}
       <div className="px-4 md:px-8 lg:px-12 pt-8 pb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -220,88 +178,23 @@ export default function RecommendationsPage() {
         {/* Game Search Input - Only show for personalized recommendations */}
         {!filter && (
           <div className="mt-6 space-y-4">
-            <div className="relative max-w-md">
-              <div className="flex items-center gap-2">
-                <div className="flex-1 relative">
-                  <Input
-                    type="text"
-                    placeholder="Search for a game (e.g., The Witcher 3, GTA V, Minecraft)"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && selectedGame) {
-                        fetchRecommendations()
-                      }
-                    }}
-                    className="pr-8"
-                  />
-                  {selectedGame && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-                      onClick={clearSelection}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
-                  )}
-                </div>
-                <Button 
-                  onClick={() => fetchRecommendations()} 
-                  disabled={loading || !selectedGame}
-                >
-                  {searchLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  ) : (
-                    <Search className="w-4 h-4 mr-2" />
-                  )}
-                  Get Recommendations
-                </Button>
-              </div>
-
-            {/* Search Results Dropdown */}
-            {showSearchResults && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
-                {searchResults.map((game) => (
-                  <button
-                    key={game.id}
-                    className="w-full text-left px-4 py-3 hover:bg-muted border-b last:border-b-0 focus:bg-muted focus:outline-none"
-                    onClick={() => selectGame(game)}
-                  >
-                    <div className="font-medium">{game.name}</div>
-                    <div className="text-sm text-muted-foreground flex items-center gap-2">
-                      <span>ID: {game.id}</span>
-                      {game.source && (
-                        <Badge variant="outline" className="text-xs">
-                          {game.source === 'database' ? 'Database' : 'IGDB'}
-                        </Badge>
-                      )}
-                      {game.rating && (
-                        <span>Rating: {Math.round(game.rating)}</span>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* No Results */}
-            {showSearchResults && searchResults.length === 0 && !searchLoading && searchInput && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 px-4 py-3">
-                <div className="text-sm text-muted-foreground">No games found for "{searchInput}"</div>
-              </div>
-            )}
-          </div>
-          
-          {selectedGame && (
-            <div className="flex items-center gap-2">
-              <Gamepad2 className="w-4 h-4 text-primary" />
-              <span className="text-sm">
-                Selected: <strong>{selectedGame.name}</strong> 
-                <span className="text-muted-foreground ml-2">(ID: {selectedGame.id})</span>
-              </span>
+            <div className="flex items-center gap-2 max-w-md">
+              <Input
+                type="number"
+                placeholder="Enter game ID (e.g., 1942)"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="flex-1"
+              />
+              <Button 
+                onClick={() => fetchRecommendations(parseInt(searchInput))} 
+                disabled={loading || !searchInput}
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Get Recommendations
+              </Button>
             </div>
-          )}
+
           </div>
         )}
 
@@ -356,7 +249,7 @@ export default function RecommendationsPage() {
             Search for a game above to get personalized recommendations based on its genres
           </p>
           <p className="text-sm text-muted-foreground text-center">
-            Search for games like: "The Witcher 3", "Grand Theft Auto V", or "Minecraft" use exactly their names and a list will appear. with no covers yet  (┬┬﹏┬┬) .
+            Search for games with seedID. with no covers yet  (┬┬﹏┬┬) .
           </p>
         </div>
       ) : filter && categoryGames.length === 0 && !loading ? (
@@ -372,7 +265,7 @@ export default function RecommendationsPage() {
           <div className="text-6xl mb-4">😔</div>
           <h3 className="text-xl font-semibold mb-2">No recommendations found</h3>
           <p className="text-muted-foreground mb-4 text-center max-w-md">
-            We couldn't find any recommendations for "{selectedGame?.name}". Try searching for a different game!
+            We couldn't find any recommendations for "{seedGameName}". Try entering a different game ID!
           </p>
         </div>
       ) : null}

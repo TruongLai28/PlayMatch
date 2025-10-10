@@ -103,7 +103,17 @@ export function GameCard({
   }, [isHovered, isPinned])
 
   const getCoverUrl = (url?: string) => {
-    if (!url) return '/placeholder-game.jpg'
+    if (!url) {
+      // Return a better placeholder that exists
+      return 'https://placehold.co/400x600/1f1f2b/5d4af8?text=No+Cover'
+    }
+    
+    // IGDB URLs come in different formats, let's handle them properly
+    if (url.startsWith('//')) {
+      url = 'https:' + url
+    }
+    
+    // Replace thumbnail size with bigger cover size for IGDB images
     return url.replace('t_thumb', 't_cover_big')
   }
 
@@ -149,7 +159,7 @@ export function GameCard({
             <Button
               size="icon"
               variant="outline"
-              className="card-btn-outline card-btn-icon rounded-full h-8 w-8"
+              className="bg-[#5d4af8] hover:bg-[#5d4af8]/90 border-[#5d4af8] text-white hover:text-white rounded-full h-8 w-8 transition-all duration-200"
               onClick={(e) => {
                 e.stopPropagation()
                 onAddToList?.()
@@ -161,7 +171,7 @@ export function GameCard({
             <Button
               size="icon"
               variant="outline"
-              className="card-btn-outline card-btn-icon rounded-full h-8 w-8"
+              className="bg-[#5d4af8] hover:bg-[#5d4af8]/90 border-[#5d4af8] text-white hover:text-white rounded-full h-8 w-8 transition-all duration-200"
               onClick={(e) => {
                 e.stopPropagation()
                 onLike?.()

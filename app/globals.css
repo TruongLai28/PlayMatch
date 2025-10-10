@@ -45,15 +45,15 @@
   --foreground: #ffffff; /* primary text on black */
   --muted: var(--cadet-gray);
 
-  /* Sidebar (inverted) */
-  --sidebar-bg: var(--prussian-blue);
+  /* Sidebar (matches landing page theme) */
+  --sidebar-bg: #14141c;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: var(--engineering-orange);
+  --sidebar-primary: #5d4af8;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: var(--steel-blue);
+  --sidebar-accent: #1f1f2b;
   --sidebar-accent-foreground: #ffffff;
   /* border color used by components that reference HSL var */
-  --sidebar-border: 206 36% 15%; /* used with hsl(var(--sidebar-border)) */
+  --sidebar-border: 250 25% 15%; /* purple-tinted border */
 }
 
 /* Apply base page background and text color */
@@ -74,6 +74,16 @@ html, body {
 .bg-sidebar, [data-sidebar="sidebar"], [data-slot="sidebar-inner"] {
   background-color: var(--sidebar-bg) !important;
   color: var(--sidebar-foreground) !important;
+}
+
+/* Remove all focus outlines from sidebar links */
+[data-sidebar="sidebar"] a:focus,
+[data-sidebar="sidebar"] button:focus,
+.bg-sidebar a:focus,
+.bg-sidebar button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 .text-sidebar-foreground {
   color: var(--sidebar-foreground) !important;
