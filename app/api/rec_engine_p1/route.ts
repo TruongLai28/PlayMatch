@@ -89,6 +89,42 @@ export async function POST(request: NextRequest) {
       const seedIds = new Set(seedCompanies.map(c => c.company?.id).filter(Boolean))
       return candidateCompanies.filter(c => seedIds.has(c.company?.id)).length / seedIds.size
     }
+    
+    // Rating similarity score **************
+    const ratingScore = (seedRating: number, candidateRating: number) => {
+      if (!seedRating || !candidateRating) return 0
+      
+      // Calculate how close ratings are (0-100 scale)
+      const difference = Math.abs(seedRating - candidateRating)
+      // Convert to 0-1 score (closer ratings = higher score)
+      // Max difference of 100 → score of 0, no difference → score of 1
+      const score = Math.max(0, 1 - difference / 100)
+      
+      // Bonus for highly-rated games (above 75)
+      const highRatingBonus = candidateRating > 75 ? 0.2 : 0
+      
+      return score + highRatingBonus
+    }
+    
+    // Platform overlap score **************
+    const platformOverlapScore = (seedPlatforms: any[], candidatePlatforms: any[]) => {
+      if (!seedPlatforms?.length || !candidatePlatforms?.length) return 0
+      
+      // Get platform IDs from both games 
+      const seedIds = new Set(
+        seedPlatforms.map(p => p.id || p.platform?.id || p).filter(Boolean)
+      )
+      
+      const candidateIds = candidatePlatforms.map(
+        p => p.id || p.platform?.id || p
+      ).filter(Boolean)
+      
+      // Count matching platforms 
+      const matches = candidateIds.filter(id => seedIds.has(id)).length
+      
+      // Return match ratio (0 to 1)
+      return matches / seedIds.size
+    }
 
     // fetch all supabase games
     let allDbGames: any[] = []
@@ -130,10 +166,26 @@ export async function POST(request: NextRequest) {
     const dbScored = allDbGames.map((game: any) => {
       const candidateGenres = parseJSON(game.genres)
       const candidateCompanies = parseJSON(game.companies || game.involved_companies)
+
+      const candidatePlatforms = parseJSON(game.platforms) // Added this **************
+
       const genreScore = genreOverlapScore(seedGame.genres, candidateGenres)
       const companyScore = companyOverlapScore(seedGame.companies, candidateCompanies)
-      const finalScore = genreScore * 0.7 + companyScore * 0.3 //70% for genre. 30% for companies for now. 
-      return { ...game, genreScore, companyScore, finalScore }
+
+      const ratingScoreValue = ratingScore(seedGame.rating, game.rating) // Added this **************
+
+      const platformScore = platformOverlapScore( // Added this **************
+        parseJSON(seedGame.platforms), 
+        candidatePlatforms
+      )
+
+      const finalScore = 
+        genreScore * 0.40 +       // 40% genre weight
+        companyScore * 0.20 +     // 20% company weight
+        ratingScoreValue * 0.20 + // 20% rating weight **************
+        platformScore * 0.20      // 20% platform weight **************
+
+      return { ...game, genreScore, companyScore, ratingScoreValue, platformScore, finalScore } // **************
     })
 
     // force a game in the list to be scored
@@ -150,10 +202,23 @@ export async function POST(request: NextRequest) {
       if (testGame) {
         const candidateGenres = parseJSON(testGame.genres)
         const candidateCompanies = parseJSON(testGame.companies || testGame.involved_companies)
+        const candidatePlatforms = parseJSON(testGame.platforms) // Added this **************
+
         const genreScore = genreOverlapScore(seedGame.genres, candidateGenres)
         const companyScore = companyOverlapScore(seedGame.companies, candidateCompanies)
-        const finalScore = genreScore * 0.7 + companyScore * 0.3
-        dbScored.push({ ...testGame, genreScore, companyScore, finalScore })
+        const ratingScoreValue = ratingScore(seedGame.rating, testGame.rating) // Added this **************
+        const platformScore = platformOverlapScore( // Added this **************
+          parseJSON(seedGame.platforms),
+          candidatePlatforms
+        )
+
+        const finalScore = 
+          genreScore * 0.4 + 
+          companyScore * 0.2 + 
+          ratingScoreValue * 0.2 + // Added this **************
+          platformScore * 0.2 
+
+        dbScored.push({ ...testGame, genreScore, companyScore, ratingScoreValue, platformScore, finalScore })
       }
     }
 
@@ -174,8 +239,10 @@ export async function POST(request: NextRequest) {
     dbScored.slice(0, 10).forEach((g, idx) => {
       console.log(
         `${idx + 1}. ${g.name}\n` +
-        `   Genre Score: ${g.genreScore.toFixed(3)} (70% weight → ${(g.genreScore * 0.7).toFixed(3)})\n` +
-        `   Company Score: ${g.companyScore.toFixed(3)} (30% weight → ${(g.companyScore * 0.3).toFixed(3)})\n` +
+        `   Genre Score: ${g.genreScore.toFixed(3)} (40% weight → ${(g.genreScore * 0.4).toFixed(3)})\n` +
+        `   Company Score: ${g.companyScore.toFixed(3)} (20% weight → ${(g.companyScore * 0.2).toFixed(3)})\n` + 
+        `   Rating Score: ${g.ratingScoreValue.toFixed(3)} (20% weight → ${(g.ratingScoreValue * 0.2).toFixed(3)})\n` + // Added this **************
+        `   Platform Score: ${g.platformScore.toFixed(3)} (20% weight → ${(g.platformScore * 0.2).toFixed(3)})\n` + // Added this **************
         `   Final Score: ${(g.finalScore).toFixed(3)}\n`
       )
     })
