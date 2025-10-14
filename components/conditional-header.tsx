@@ -5,9 +5,9 @@ import { HeaderSearch } from '@/components/header-search'
 
 export function ConditionalHeader() {
   const pathname = usePathname()
+  const noHeaderPages = ['/', '/login', '/auth/callback']
   
-  // Don't show the header search on the landing page
-  if (pathname === '/') {
+  if (noHeaderPages.includes(pathname)) {
     return null
   }
 

@@ -13,8 +13,11 @@ interface ConditionalLayoutProps {
 export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname()
   
-  // Landing page layout - no sidebar
-  if (pathname === '/') {
+  const noLayoutPages = ['/', '/login', '/auth/callback']
+  const shouldShowLayout = !noLayoutPages.includes(pathname)
+
+  // No sidebar/header for landing, login, and auth pages
+  if (!shouldShowLayout) {
     return (
       <PinnedCardProvider>
         {children}
@@ -22,7 +25,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
     )
   }
 
-  // Other pages layout - with sidebar
+  // Authenticated pages - with sidebar and header
   return (
     <SidebarProvider defaultOpen={true}>
       <PinnedCardProvider>

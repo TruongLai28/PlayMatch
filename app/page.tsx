@@ -95,7 +95,7 @@ export default function HomePage() {
   }
 
   const handleGetStarted = () => {
-    router.push('/recommendations')
+    router.push('/login')
   }
 
   const handleRecommendations = () => {
@@ -552,8 +552,8 @@ export default function HomePage() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <span className="nav-link" onClick={handleExplore}>Explore</span>
-              <span className="nav-link">Sign In</span>
-              <Button className="bg-[#5d4af8] hover:bg-[#5d4af8]/90">
+              <span className="nav-link" onClick={() => router.push('/login')} >Sign In</span>
+              <Button className="bg-[#5d4af8] hover:bg-[#5d4af8]/90" onClick={() => router.push('/login')}>
                 Sign Up
               </Button>
             </div>

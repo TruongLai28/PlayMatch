@@ -23,8 +23,12 @@ import {
   Gamepad2,
   TrendingUp,
   Star,
-  Sparkles
+  Sparkles,
+  LogOut
 } from "lucide-react"
+import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 // Menu items for navigation
 const mainNavItems = [
@@ -77,6 +81,28 @@ const personalItems = [
 ]
 
 export function AppSidebar() {
+  const router = useRouter()
+  const [isSigningOut, setIsSigningOut] = useState(false)
+
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true)
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.error('Error signing out:', error)
+        alert('Failed to sign out. Please try again.')
+      } else {
+        router.push('/')
+      }
+    } catch (error) {
+      console.error('Unexpected error during sign out:', error)
+      alert('An unexpected error occurred.')
+    } finally {
+      setIsSigningOut(false)
+    }
+  }
+
   return (
     <Sidebar className="border-2 border-sidebar-border bg-sidebar">
       <SidebarHeader className="p-4 border-b-2 border-sidebar-border relative bg-gradient-to-r from-sidebar-bg to-sidebar-accent">
@@ -150,7 +176,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-  <SidebarFooter className="p-4 border-t-2 border-sidebar-border bg-gradient-to-r from-sidebar-bg to-sidebar-accent">
+      <SidebarFooter className="p-4 border-t-2 border-sidebar-border bg-gradient-to-r from-sidebar-bg to-sidebar-accent">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
@@ -166,6 +192,17 @@ export function AppSidebar() {
                 <Settings className="h-5 w-5" />
                 <span className="font-medium">Settings</span>
               </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="flex items-center gap-3 p-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-primary transition-all duration-200 rounded-lg focus:outline-none focus:ring-0 focus:ring-offset-0 focus:shadow-none !outline-none cursor-pointer"
+              style={{outline: 'none !important', boxShadow: 'none !important'}}
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="font-medium">{isSigningOut ? 'Signing out...' : 'Sign Out'}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
