@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
-import { HeroSection } from '@/components/HeroSection'
-import { GameRow } from '@/components/GameRow'
-import { CategoryBar } from '@/components/CategoryBar'
+import { HeroSection } from '@/features/landing'
+import { GameRow, CategoryBar } from '@/features/game'
 
 interface Game {
   id: number

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { usePinnedCard } from '@/components/pinned-card-context'
+import { usePinnedCard } from '../PinnedCardProvider'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { ConditionalLayout } from '@/components/conditional-layout'
-import { AuthProvider } from '@/components/AuthProvider'
+import { Layout } from '@/components/layout'
+import { AuthProvider } from '@/features/auth'
 
 export const metadata: Metadata = {
   title: 'PlayMatch',
@@ -17,9 +17,9 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-black text-white font-netflix antialiased">
         <AuthProvider>
-          <ConditionalLayout>
+          <Layout>
             {children}
-          </ConditionalLayout>
+          </Layout>
         </AuthProvider>
       </body>
     </html>

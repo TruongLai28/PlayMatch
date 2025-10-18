@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { GameGrid } from '@/components/GameGrid'
+import { GameGrid, CategoryBar } from '@/features/game'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Sparkles, RefreshCw, Search, Gamepad2, X, TrendingUp, Star, Clock } from 'lucide-react'
-import { CategoryBar } from '@/components/CategoryBar'
 
 interface Game {
   id: number

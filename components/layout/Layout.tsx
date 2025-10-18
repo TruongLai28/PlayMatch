@@ -2,15 +2,15 @@
 
 import { usePathname } from 'next/navigation'
 import { SidebarProvider, SidebarInset, SidebarFloatingTrigger } from '@/components/ui/sidebar'
-import { AppSidebar } from '@/components/app-sidebar'
-import { PinnedCardProvider } from '@/components/pinned-card-context'
-import { ConditionalHeader } from '@/components/conditional-header'
+import { AppSidebar } from './Sidebar'
+import { PinnedCardProvider } from '@/features/game'
+import { Header } from './Header'
 
-interface ConditionalLayoutProps {
+interface LayoutProps {
   children: React.ReactNode
 }
 
-export function ConditionalLayout({ children }: ConditionalLayoutProps) {
+export function Layout({ children }: LayoutProps) {
   const pathname = usePathname()
   
   const noLayoutPages = ['/', '/login', '/auth/callback']
@@ -32,7 +32,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
         <AppSidebar />
         <SidebarFloatingTrigger />
         <SidebarInset>
-          <ConditionalHeader />
+          <Header />
           {children}
         </SidebarInset>
       </PinnedCardProvider>

@@ -1,9 +1,9 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { HeaderSearch } from '@/components/header-search'
+import { HeaderSearch } from './HeaderSearch'
 
-export function ConditionalHeader() {
+export function Header() {
   const pathname = usePathname()
   const noHeaderPages = ['/', '/login', '/auth/callback']
   
