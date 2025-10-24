@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.57.2",
     "@types/swagger-ui-react": "^5.18.0",
     "axios": "^1.11.0",
