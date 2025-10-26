@@ -5,7 +5,7 @@ import { HeaderSearch } from './HeaderSearch'
 
 export function Header() {
   const pathname = usePathname()
-  const noHeaderPages = ['/', '/login', '/auth/callback']
+  const noHeaderPages = ['/', '/login', '/auth/callback', '/docs']
   
   if (noHeaderPages.includes(pathname)) {
     return null

@@ -61,7 +61,7 @@ export default function HomePage() {
      
       // Fetch different categories of games
       const [popular, newGames, recommended] = await Promise.all([
-        fetch('/api/games/popular').then(res => {
+        fetch('/api/db/popular').then(res => {
           if (!res.ok) throw new Error('Failed to fetch popular games')
           return res.json()
         }),
