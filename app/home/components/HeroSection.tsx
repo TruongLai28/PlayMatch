@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useState, useEffect } from 'react'
 import { Info, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
@@ -110,7 +110,7 @@ export function HeroSection({ games }: HeroSectionProps) {
       return 'https://placehold.co/800x600/1f1f2b/5d4af8?text=No+Cover'
     }
     
-    // IGDB URLs come in different formats, let's handle them properly
+    // IGDB URLs come in different formats
     if (url.startsWith('//')) {
       url = 'https:' + url
     }
@@ -120,7 +120,7 @@ export function HeroSection({ games }: HeroSectionProps) {
   }
 
   return (
-    <div className="relative w-[1200px] max-w-full mx-auto h-[60vh] md:h-[72vh] lg:h-[68vh] overflow-hidden rounded-xl border-2 border-sidebar-border shadow-lg shadow-[hsl(var(--sidebar-border))] bg-gradient-to-r from-transparent to-sidebar-accent/10">
+    <div className="relative w-full h-[60vh] md:h-[72vh] lg:h-[68vh] overflow-hidden rounded-xl border-2 border-sidebar-border shadow-lg shadow-[hsl(var(--sidebar-border))] bg-gradient-to-r from-transparent to-sidebar-accent/10">
       <div className={`grid grid-cols-1 md:grid-cols-2 h-full transition-opacity duration-300 ${
         isTransitioning ? 'opacity-50' : 'opacity-100'
       }`}>
@@ -223,7 +223,7 @@ export function HeroSection({ games }: HeroSectionProps) {
           {isAutoPlaying && (
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
               <div 
-                className="h-full bg-white/70 animate-pulse"
+                className="h-full bg-purple-700 animate-pulse"
                 style={{ 
                   width: '100%',
                   animation: isTransitioning 

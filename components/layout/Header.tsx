@@ -12,12 +12,10 @@ export function Header() {
   }
 
   return (
-    <header className="z-20 w-full bg-transparent">
+    <header className={`sticky top-3 z-40 w-full bg-transparent`}>
       <div className="mx-auto w-full max-w-3xl px-4 py-3">
-        <div className="mx-auto bg-background border border-sidebar-border/40 rounded-xl shadow-sm">
-          <div className="flex items-center gap-4 p-3">
-            <HeaderSearch />
-          </div>
+        <div className="mx-auto flex items-center justify-center gap-4 p-3">
+          <HeaderSearch />
         </div>
       </div>
     </header>

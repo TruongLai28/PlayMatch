@@ -27,7 +27,7 @@ const features = [
     description: 'Get accurate recommendations based on games you play!'
   },
   {
-    title: 'Rate?',
+    title: 'Rate',
     description: 'Rate everything you play to build your taste profile.'
   },
   {
@@ -177,7 +177,7 @@ export default function HomePage() {
 
   return (
     <>
-      <style jsx>{`
+  <style jsx>{`
         :root {
           --background-color: #14141c;
           --secondary-bg-color: #1f1f2b;
