@@ -28,24 +28,45 @@ class IGDBClient {
     return this.accessToken!;
   }
 
-  async searchGames(query: string) {
-    const token = await this.getAccessToken();
+async searchGames(query: string) {
+  const token = await this.getAccessToken();
+  
+  const response = await axios.post(
+    "https://api.igdb.com/v4/games",
+    `fields name,cover.url,rating,first_release_date,genres.name,platforms.name,summary,themes.name,keywords.name,game_modes.name,player_perspectives.name,age_ratings.rating,age_ratings.category,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,release_dates.date,release_dates.platform.name,similar_games.name,screenshots.url; 
+     search "${query}"; 
+     limit 500;`,
+    {
+      headers: {
+        "Client-ID": this.clientId,
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data;
+}
 
-    const response = await axios.post(
-      "https://api.igdb.com/v4/games",
-      `fields name,cover.url,rating,first_release_date,genres.name,platforms.name,summary,themes.name,keywords.name,game_modes.name,player_perspectives.name,age_ratings.rating,age_ratings.category,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,release_dates.date,release_dates.platform.name,similar_games.name,screenshots.url; 
-       search "${query}"; 
-       where rating > 0;`,
-      {
-        headers: {
-          "Client-ID": this.clientId,
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
 
-    return response.data;
-  }
+
+
+  //async searchGames(query: string) {
+  //  const token = await this.getAccessToken();
+//
+  //  const response = await axios.post(
+  //    "https://api.igdb.com/v4/games",
+  //    `fields name,cover.url,rating,first_release_date,genres.name,platforms.name,summary,themes.name,keywords.name,game_modes.name,player_perspectives.name,age_ratings.rating,age_ratings.category,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,release_dates.date,release_dates.platform.name,similar_games.name,screenshots.url; 
+  //     search "${query}"; 
+  //     where rating > 0;`,
+  //    {
+  //      headers: {
+  //        "Client-ID": this.clientId,
+  //        Authorization: `Bearer ${token}`,
+  //      },
+  //    }
+  //  );
+//
+  //  return response.data;
+  //}
 
   async getAllGames(limit: number = 50, offset: number = 0) {
     const token = await this.getAccessToken();
