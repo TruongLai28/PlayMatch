@@ -9,8 +9,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Gamepad2, Search } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { Gamepad2 } from 'lucide-react'
+
 
 interface Game {
   id: number
@@ -43,7 +43,6 @@ const features = [
 export default function HomePage() {
   const [featuredGames, setFeaturedGames] = useState<Game[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchInput, setSearchInput] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -110,35 +109,7 @@ export default function HomePage() {
     router.push('/home?category=popular')
   }
 
-  const handleSearch = async () => {
-    if (!searchInput.trim()) return
 
-    try {
-      const seedId = parseInt(searchInput)
-      if (isNaN(seedId)) {
-        alert('Please enter a valid game ID number')
-        return
-      }
-
-      const response = await fetch(`/api/games/search?seedId=${seedId}`)
-      const data = await response.json()
-
-      if (response.ok && data.results?.length > 0) {
-        router.push(`/recommendations?seedId=${searchInput}`)
-      } else {
-        alert(data.error || 'No game found with that ID')
-      }
-    } catch (error) {
-      console.error('Search error:', error)
-      alert('Search failed. Please try again.')
-    }
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch()
-    }
-  }
 
   const handleNewReleases = () => {
     router.push('/home?category=new-releases')
@@ -195,10 +166,149 @@ export default function HomePage() {
           font-family: 'Inter', sans-serif;
           background-color: var(--background-color);
           color: var(--text-color);
+          position: relative;
+          overflow-x: hidden;
+        }
+        .gradient-circles {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 1;
+        }
+        .gradient-circle {
+          position: absolute;
+          border-radius: 50%;
+          background: radial-gradient(circle, 
+            rgba(93, 74, 248, 0.15) 0%, 
+            rgba(124, 58, 237, 0.1) 30%, 
+            rgba(93, 74, 248, 0.05) 60%, 
+            transparent 100%);
+          filter: blur(1px);
+          animation: float 20s ease-in-out infinite;
+        }
+        .gradient-circle:nth-child(1) {
+          width: 400px;
+          height: 400px;
+          top: -100px;
+          right: -100px;
+          animation-delay: 0s;
+        }
+        .gradient-circle:nth-child(2) {
+          width: 300px;
+          height: 300px;
+          bottom: -50px;
+          left: -75px;
+          animation-delay: -5s;
+        }
+        .gradient-circle:nth-child(3) {
+          width: 250px;
+          height: 250px;
+          top: 50%;
+          right: 10%;
+          animation-delay: -10s;
+        }
+        .gradient-circle:nth-child(4) {
+          width: 350px;
+          height: 350px;
+          top: 60%;
+          left: -100px;
+          animation-delay: -15s;
+        }
+        .gradient-circle:nth-child(5) {
+          width: 200px;
+          height: 200px;
+          top: 20%;
+          left: 20%;
+          animation-delay: -8s;
+        }
+        .gradient-triangle {
+          position: absolute;
+          width: 0;
+          height: 0;
+          filter: blur(2px);
+          animation: triangleFloat 25s ease-in-out infinite;
+        }
+        .gradient-triangle::before {
+          content: '';
+          position: absolute;
+          width: 200px;
+          height: 200px;
+          background: conic-gradient(
+            from 0deg at 50% 50%,
+            rgba(93, 74, 248, 0.12) 0deg,
+            rgba(124, 58, 237, 0.08) 120deg,
+            rgba(93, 74, 248, 0.04) 240deg,
+            rgba(93, 74, 248, 0.12) 360deg
+          );
+          clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+          transform: translate(-50%, -50%);
+        }
+        .gradient-triangle:nth-child(6) {
+          top: 15%;
+          right: 15%;
+          animation-delay: -3s;
+        }
+        .gradient-triangle:nth-child(6)::before {
+          width: 150px;
+          height: 150px;
+        }
+        .gradient-triangle:nth-child(7) {
+          bottom: 20%;
+          right: 5%;
+          animation-delay: -12s;
+        }
+        .gradient-triangle:nth-child(7)::before {
+          width: 180px;
+          height: 180px;
+        }
+        .gradient-triangle:nth-child(8) {
+          top: 40%;
+          left: 5%;
+          animation-delay: -18s;
+        }
+        .gradient-triangle:nth-child(8)::before {
+          width: 120px;
+          height: 120px;
+        }
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px) translateX(0px) scale(1);
+          }
+          25% {
+            transform: translateY(-20px) translateX(10px) scale(1.05);
+          }
+          50% {
+            transform: translateY(15px) translateX(-15px) scale(0.95);
+          }
+          75% {
+            transform: translateY(-10px) translateX(5px) scale(1.02);
+          }
+        }
+        @keyframes triangleFloat {
+          0%, 100% {
+            transform: translateY(0px) translateX(0px) rotate(0deg);
+          }
+          20% {
+            transform: translateY(-15px) translateX(8px) rotate(5deg);
+          }
+          40% {
+            transform: translateY(10px) translateX(-12px) rotate(-3deg);
+          }
+          60% {
+            transform: translateY(-8px) translateX(15px) rotate(7deg);
+          }
+          80% {
+            transform: translateY(12px) translateX(-5px) rotate(-2deg);
+          }
         }
         main {
           outline: none;
           border: none;
+          position: relative;
+          z-index: 2;
         }
         .container {
           max-width: 1400px;
@@ -215,24 +325,20 @@ export default function HomePage() {
         .main-header {
           padding: 20px 0;
           border-bottom: 1px solid var(--border-color);
+          position: relative;
+          z-index: 10;
+          background-color: var(--background-color);
         }
         .main-nav {
           display: flex;
-          justify-content: flex-start;
+          justify-content: space-between;
           align-items: center;
-          gap: 30px;
           width: 100%;
         }
-        .nav-left, .nav-center {
+        .nav-left {
           display: flex;
           align-items: center;
           gap: 20px;
-        }
-        .nav-left {
-          margin-right: 0;
-        }
-        .nav-center {
-          margin-right: auto;
         }
         .nav-right {
           display: flex;
@@ -248,8 +354,17 @@ export default function HomePage() {
           letter-spacing: -1px;
           color: var(--text-color);
         }
+        .logo-text-play {
+          color: var(--text-color);
+        }
+        .logo-text-match {
+          background: linear-gradient(135deg, #5d4af8 0%, #7c3aed 50%, #a855f7 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
         .logo svg {
-          color: var(--primary-color);
+          color: var(--primary-color) !important;
         }
         .nav-link {
           color: var(--text-muted-color);
@@ -261,33 +376,7 @@ export default function HomePage() {
         .nav-link:hover {
           color: var(--text-color);
         }
-        .search-container {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          min-width: 300px;
-        }
-        .search-input {
-          flex: 1;
-          height: 36px !important;
-          font-size: 0.9rem;
-          background-color: var(--secondary-bg-color);
-          border: 1px solid var(--border-color);
-          color: var(--text-color);
-        }
-        .search-input::placeholder {
-          color: var(--text-muted-color);
-        }
-        .search-button {
-          height: 36px;
-          width: 36px;
-          padding: 0;
-          color: var(--primary-color);
-        }
-        .search-button:hover {
-          background-color: var(--primary-color);
-          color: white;
-        }
+
         .hero-section {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -449,9 +538,7 @@ export default function HomePage() {
           .features-grid {
             grid-template-columns: repeat(2, 1fr);
           }
-          .search-container {
-            min-width: 200px;
-          }
+
           .nav-link {
             display: none;
           }
@@ -494,9 +581,7 @@ export default function HomePage() {
           .poster-card:hover {
             transform: rotateX(0deg) rotateY(0deg) translateY(-3px) scale(1.02);
           }
-          .search-container {
-            min-width: 150px;
-          }
+
           .main-nav {
             gap: 10px;
           }
@@ -512,49 +597,18 @@ export default function HomePage() {
           <nav className="main-nav">
             <div className="nav-left">
               <div className="logo">
-                <Gamepad2 className="h-8 w-8" />
-                <span>PlayMatch</span>
+                <Gamepad2 className="h-10 w-10" style={{ color: '#5d4af8' }} />
+                <span>
+                  <span className="logo-text-play">Play</span>
+                  <span className="logo-text-match">Match</span>
+                </span>
               </div>
             </div>
-            <div className="nav-center">
-              <div className="search-container">
-                <Input 
-                  placeholder="Enter game ID (e.g. 1942)" 
-                  className="search-input"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  type="number"
-                />
-                <Button variant="ghost" size="sm" onClick={handleSearch} className="search-button">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+
             <div className="nav-right">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <span className="nav-link">Recommendations</span>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[var(--secondary-bg-color)] border-[var(--border-color)]">
-                  <DropdownMenuItem onClick={handleRecommendations} className="text-[var(--text-color)] hover:bg-[var(--primary-color)]/20">
-                    Personal Recommendations
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handlePopularGames} className="text-[var(--text-color)] hover:bg-[var(--primary-color)]/20">
-                    Popular Games
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleTopRated} className="text-[var(--text-color)] hover:bg-[var(--primary-color)]/20">
-                    Top Rated
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleNewReleases} className="text-[var(--text-color)] hover:bg-[var(--primary-color)]/20">
-                    New Releases
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
               <span className="nav-link" onClick={handleExplore}>Explore</span>
-              <span className="nav-link" onClick={() => router.push('/login')} >Sign In</span>
               <Button className="bg-[#5d4af8] hover:bg-[#5d4af8]/90" onClick={() => router.push('/login')}>
-                Sign Up
+                Sign In
               </Button>
             </div>
           </nav>
@@ -562,6 +616,18 @@ export default function HomePage() {
       </header>
 
       <main>
+        {/* Decorative gradient circles and triangles */}
+        <div className="gradient-circles">
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-triangle"></div>
+          <div className="gradient-triangle"></div>
+          <div className="gradient-triangle"></div>
+        </div>
+
         <section className="hero-section container">
           <div className="hero-content">
             <h1>Play Your Way!</h1>
@@ -571,7 +637,7 @@ export default function HomePage() {
               className="bg-[#5d4af8] hover:bg-[#5d4af8]/90"
               style={{ padding: '15px 30px', fontSize: '1.1rem' }}
             >
-              Get started for free!
+              Get started!
             </Button>
           </div>
           <div className="poster-grid">

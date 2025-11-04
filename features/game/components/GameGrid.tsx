@@ -10,26 +10,57 @@ interface Game {
   }
   summary?: string
   rating?: number
-  genres?: Array<{ name: string }>
+  total_rating?: number
+  genres?: Array<{ id: number; name: string }>
+  companies?: Array<{ company?: { id: number; name: string }; id?: number; name?: string }>
+  platforms?: Array<{ id: number; name: string }>
+  keywords?: Array<{ id: number; name: string }>
+  themes?: Array<{ id: number; name: string }>
+  first_release_date?: number
+  release_dates?: Array<{ date: number }>
 }
 
 interface GameGridProps {
   games: Game[]
   title?: string
+  onAddToLibrary?: (gameId: number) => void
+  onAddToList?: (gameId: number) => void
+  onMoreInfo?: (gameId: number) => void
 }
 
-export function GameGrid({ games, title }: GameGridProps) {
+export function GameGrid({ 
+  games, 
+  title,
+  onAddToLibrary,
+  onAddToList,
+  onMoreInfo
+}: GameGridProps) {
+  if (!games || games.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium text-gray-400 mb-2">No games to display</h3>
+        <p className="text-gray-500">Try adjusting your search or filters</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="px-4 md:px-8 lg:px-12">
+    <div className="px-4 md:px-6 lg:px-8 xl:px-12 pb-8">
       {title && (
         <h2 className="text-2xl md:text-3xl font-bold mb-6 text-white">
           {title}
         </h2>
       )}
      
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+      <div className="flex flex-wrap gap-4 justify-center">
         {games.map((game) => (
-          <GameCard key={game.id} game={game} />
+          <GameCard 
+            key={game.id}
+            game={game}
+            onAddToLibrary={() => onAddToList?.(game.id)}
+            onAddToList={() => onAddToLibrary?.(game.id)}
+            onMoreInfo={() => onMoreInfo?.(game.id)}
+          />
         ))}
       </div>
     </div>

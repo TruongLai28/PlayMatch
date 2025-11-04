@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { usePinnedCard } from '../PinnedCardProvider'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -16,7 +15,14 @@ interface Game {
   }
   summary?: string
   rating?: number
-  genres?: Array<{ name: string }>
+  total_rating?: number
+  genres?: Array<{ id: number; name: string }>
+  companies?: Array<{ company?: { id: number; name: string }; id?: number; name?: string }>
+  platforms?: Array<{ id: number; name: string }>
+  keywords?: Array<{ id: number; name: string }>
+  themes?: Array<{ id: number; name: string }>
+  first_release_date?: number
+  release_dates?: Array<{ date: number }>
 }
 
 interface GameRowProps {
@@ -30,7 +36,7 @@ interface GameRowProps {
 // Loading skeleton for game row
 function GameRowSkeleton() {
   return (
-    <div className="px-4 md:px-8 lg:px-12">
+    <div className="px-6 max-w-[1800px] mx-auto">
       <div className="flex items-center justify-between mb-6">
         <Skeleton className="h-8 w-48 bg-zinc-700" />
         <Skeleton className="h-6 w-16 bg-zinc-700" />
@@ -56,8 +62,6 @@ function GameRowSkeleton() {
 export function GameRow({ title, games, loading = false, showCount = true, rowId }: GameRowProps) {
   const [scrollPosition, setScrollPosition] = useState(0)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
-  const { pinnedInstanceId, setPinnedInstanceId } = usePinnedCard()
-  const stableRowId = rowId ?? title.replace(/\s+/g, '-').toLowerCase()
   const containerRef = useRef<HTMLDivElement>(null)
   
   const scroll = (direction: 'left' | 'right') => {
@@ -88,9 +92,9 @@ export function GameRow({ title, games, loading = false, showCount = true, rowId
   }
 
   return (
-    <div className="group relative">
+    <div className="group relative pb-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 px-4 md:px-8 lg:px-12">
+      <div className="flex items-center justify-between mb-6 px-6 max-w-[1800px] mx-auto">
         <h2 className="text-2xl md:text-3xl font-bold text-white">
           {title}
         </h2>
@@ -107,9 +111,12 @@ export function GameRow({ title, games, loading = false, showCount = true, rowId
           onClick={() => scroll('left')}
           size="icon"
           variant="ghost"
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-50 bg-black/80 hover:bg-black/90 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 h-12 w-12 ml-2"
+          className="absolute top-1/2 -translate-y-1/2 z-50 bg-black/80 hover:bg-black/90 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 h-12 w-12"
           aria-label="Scroll left"
-          style={{ zIndex: 100 }}
+          style={{ 
+            zIndex: 100,
+            left: 'max(8px, calc((100vw - 1800px) / 2 + 8px))'
+          }}
         >
           <ChevronLeft size={24} />
         </Button>
@@ -120,9 +127,12 @@ export function GameRow({ title, games, loading = false, showCount = true, rowId
           onClick={() => scroll('right')}
           size="icon"
           variant="ghost"
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-50 bg-black/80 hover:bg-black/90 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 h-12 w-12 mr-2"
+          className="absolute top-1/2 -translate-y-1/2 z-50 bg-black/80 hover:bg-black/90 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 h-12 w-12"
           aria-label="Scroll right"
-          style={{ zIndex: 100 }}
+          style={{ 
+            zIndex: 100,
+            right: 'max(8px, calc((100vw - 1800px) / 2 + 8px))'
+          }}
         >
           <ChevronRight size={24} />
         </Button>
@@ -131,8 +141,11 @@ export function GameRow({ title, games, loading = false, showCount = true, rowId
       {/* Games Container */}
       <div 
         ref={containerRef}
-        className="flex overflow-x-auto scrollbar-hide px-4 md:px-8 lg:px-12"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        className="flex overflow-x-auto scrollbar-hide px-6 max-w-[1800px] mx-auto"
+        style={{ 
+          scrollbarWidth: 'none', 
+          msOverflowStyle: 'none'
+        }}
       >
         {games.map((game, index) => (
           <div 
@@ -140,11 +153,7 @@ export function GameRow({ title, games, loading = false, showCount = true, rowId
             className={`flex-shrink-0 transform-gpu will-change-transform transition-transform duration-300 ease-out ${index === games.length - 1 ? '' : 'mr-4'}`}
             onMouseEnter={() => setHoveredIndex(index)}
             onMouseLeave={() => setHoveredIndex(null)}
-            onClick={(e) => {
-              e.stopPropagation()
-              const instanceId = `${game.id}-${stableRowId}-${index}`
-              setPinnedInstanceId(pinnedInstanceId === instanceId ? null : instanceId)
-            }}
+
             style={{
               transform: hoveredIndex !== null && index > hoveredIndex ? `translateX(${Math.min(280, (index - hoveredIndex) * 20)}px)` : undefined,
             }}
@@ -152,10 +161,6 @@ export function GameRow({ title, games, loading = false, showCount = true, rowId
             <GameCard 
               game={game} 
               isLastCard={index === games.length - 1}
-              isPinned={pinnedInstanceId === `${game.id}-${stableRowId}-${index}`}
-              onAddToList={() => console.log('Add to list:', game.name)}
-              onLike={() => console.log('Like:', game.name)}
-              onMoreInfo={() => console.log('More info:', game.name)}
             />
           </div>
         ))}

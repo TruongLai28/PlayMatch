@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Search, Gamepad2, User, X, LogOut } from "lucide-react"
+import { Search, Gamepad2, User, X, LogOut, Eye, EyeOff } from "lucide-react"
 import { usePathname, useRouter } from 'next/navigation'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Input } from "@/components/ui/input"
@@ -13,31 +13,48 @@ export function HeaderSearch() {
   const [isSearchOpen, setIsSearchOpen] = React.useState(false)
   const [isProfileOpen, setIsProfileOpen] = React.useState(false)
   const [userEmail, setUserEmail] = React.useState<string | null>(null)
-  const [genres, setGenres] = React.useState<Array<{ id?: number; name: string }>>([])
-  const [genresLoading, setGenresLoading] = React.useState(false)
+  const [showEmail, setShowEmail] = React.useState(false)
+  const [genres, setGenres] = React.useState<Array<{ id: number; name: string }>>([])
+  const [modalSearchInput, setModalSearchInput] = React.useState('')
+  const [searchResults, setSearchResults] = React.useState<any[]>([])
+  const [searching, setSearching] = React.useState(false)
+  const [selectedGenres, setSelectedGenres] = React.useState<number[]>([])
   const pathname = usePathname() ?? '/'
   const router = useRouter()
 
-  // Lazy-load genres when the modal is first opened
+  // Load IGDB genres when the modal is first opened
   React.useEffect(() => {
-    const loadGenres = async () => {
+    const loadGenres = () => {
       if (!isSearchOpen || genres.length > 0) return
-      try {
-        setGenresLoading(true)
-        const res = await fetch('/api/games/genres')
-        const json = await res.json()
-        if (res.ok && Array.isArray(json.genres)) {
-          setGenres(json.genres)
-        } else {
-          console.warn('Genres response not OK:', json)
-          setGenres([])
-        }
-      } catch (e) {
-        console.error('Failed to load genres', e)
-        setGenres([])
-      } finally {
-        setGenresLoading(false)
-      }
+      
+      // Use the official IGDB genre list with correct IDs
+      const igdbGenres = [
+        { id: 2, name: 'Point-and-click' },
+        { id: 4, name: 'Fighting' },
+        { id: 5, name: 'Shooter' },
+        { id: 7, name: 'Music' },
+        { id: 8, name: 'Platform' },
+        { id: 9, name: 'Puzzle' },
+        { id: 10, name: 'Racing' },
+        { id: 11, name: 'Real Time Strategy (RTS)' },
+        { id: 12, name: 'Role-playing (RPG)' },
+        { id: 13, name: 'Simulator' },
+        { id: 14, name: 'Sport' },
+        { id: 15, name: 'Strategy' },
+        { id: 16, name: 'Turn-based Strategy (TBS)' },
+        { id: 24, name: 'Tactical' },
+        { id: 25, name: 'Hack & slash/Beat \'em up' },
+        { id: 26, name: 'Quiz/Trivia' },
+        { id: 30, name: 'Pinball' },
+        { id: 31, name: 'Adventure' },
+        { id: 32, name: 'Indie' },
+        { id: 33, name: 'Arcade' },
+        { id: 34, name: 'Visual Novel' },
+        { id: 35, name: 'Card & Board Game' },
+        { id: 36, name: 'MOBA' }
+      ]
+      
+      setGenres(igdbGenres)
     }
     loadGenres()
   }, [isSearchOpen, genres.length])
@@ -56,6 +73,17 @@ export function HeaderSearch() {
     }
     loadUser()
   }, [isProfileOpen])
+
+  const maskedEmail = React.useMemo(() => {
+    if (!userEmail) return null
+    if (showEmail) return userEmail
+    const parts = userEmail.split('@')
+    if (parts.length !== 2) return '••••••••'
+    const [local, domain] = parts
+    const visible = local.slice(0, 1)
+    const masked = '•'.repeat(Math.max(local.length - 1, 1))
+    return `${visible}${masked}@${domain}`
+  }, [userEmail, showEmail])
 
   const handleSearch = async () => {
     if (!searchInput.trim()) return
@@ -79,6 +107,107 @@ export function HeaderSearch() {
       console.error('Search error:', error)
       alert('Search failed. Please try again.')
     }
+  }
+
+  const searchGames = async (query: string, genreIds: number[] = selectedGenres) => {
+    if (!query.trim()) {
+      setSearchResults([])
+      return
+    }
+
+    try {
+      setSearching(true)
+      let url = `/api/new-search-game?q=${encodeURIComponent(query.trim())}`
+      
+      // Add genre filters if any are selected
+      if (genreIds.length > 0) {
+        const genreParams = genreIds.map(id => `genre_id=${id}`).join('&')
+        url += `&${genreParams}`
+      }
+      
+      console.log('Search URL:', url)
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        throw new Error('Failed to search games')
+      }
+      
+      const data = await response.json()
+      console.log('Search API response:', data)
+      console.log('Search results count:', data.results?.length || 0)
+      console.log('Genre filters applied:', genreIds)
+      console.log('All search result names:', data.results?.map((g: any) => g.name) || [])
+      setSearchResults(data.results || [])
+    } catch (error) {
+      console.error('Search error:', error)
+      setSearchResults([])
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  // Debounced search effect
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (modalSearchInput.trim()) {
+        searchGames(modalSearchInput.trim(), selectedGenres)
+      } else {
+        setSearchResults([])
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [modalSearchInput, selectedGenres])
+
+  const handleModalSearch = React.useCallback((query: string) => {
+    setModalSearchInput(query)
+  }, [])
+
+  const handleSearchEnter = () => {
+    if (modalSearchInput.trim() || selectedGenres.length > 0) {
+      // Build URL with search parameters
+      const params = new URLSearchParams()
+      if (modalSearchInput.trim()) {
+        params.set('q', modalSearchInput.trim())
+      }
+      if (selectedGenres.length > 0) {
+        selectedGenres.forEach(genreId => {
+          params.append('genre_id', genreId.toString())
+        })
+      }
+      
+      // Navigate to browse page with search parameters
+      router.push(`/browse?${params.toString()}`)
+      closeSearchModal()
+    }
+  }
+
+  const selectGame = (game: any) => {
+    console.log('Selected game:', game.name, 'ID:', game.id)
+    setIsSearchOpen(false)
+    setModalSearchInput('')
+    setSearchResults([])
+    router.push(`/recommendations?seedId=${game.id}`)
+  }
+
+  const closeSearchModal = () => {
+    setIsSearchOpen(false)
+    setModalSearchInput('')
+    setSearchResults([])
+    setSelectedGenres([])
+  }
+
+  const toggleGenre = (genreId: number) => {
+    setSelectedGenres(prev => {
+      const isSelected = prev.includes(genreId)
+      const newSelection = isSelected 
+        ? prev.filter(id => id !== genreId)
+        : [...prev, genreId]
+      
+      const genreName = genres.find(g => g.id === genreId)?.name || 'Unknown'
+      console.log('Genre toggled:', `${genreName} (ID: ${genreId})`, 'Selected genres:', newSelection)
+      return newSelection
+    })
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -115,7 +244,7 @@ export function HeaderSearch() {
           <nav className="inline-flex items-center gap-2 text-sm rounded-full px-2 py-1 bg-[#5d4af8]/15 backdrop-blur-md shadow-sm">
             {/* Brand inside the pill */}
             <button
-              onClick={() => router.push('/home')}
+              onClick={() => router.push('/recommendations')}
               className="mr-1 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-sm text-[#e6e6ff] hover:bg-[#5d4af8]/10 focus:outline-none focus:ring-0"
               aria-label="PlayMatch Home"
             >
@@ -123,7 +252,7 @@ export function HeaderSearch() {
               <span className="font-semibold tracking-tight">PlayMatch</span>
             </button>
             <NavItem href="/home">Home</NavItem>
-            <NavItem href="/home">Games</NavItem>
+            <NavItem href="/library">Library</NavItem>
 
             {/* inline search input inside the pill */}
             <button
@@ -150,14 +279,14 @@ export function HeaderSearch() {
               {/* Backdrop */}
               <div
                 className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-                onClick={() => setIsSearchOpen(false)}
+                onClick={closeSearchModal}
                 aria-hidden="true"
               />
               {/* Modal Panel */}
-              <div className="relative w-full max-w-5xl rounded-2xl border border-white/10 bg-[#0f1220]/90 shadow-2xl">
+              <div className="relative w-full max-w-5xl rounded-2xl border border-[#5d4af8]/30 bg-zinc-900/50 shadow-[0_0_20px_rgba(93,74,248,0.3)]">
                 {/* Close button */}
                 <button
-                  onClick={() => setIsSearchOpen(false)}
+                  onClick={closeSearchModal}
                   className="absolute right-3 top-3 rounded-full p-2 text-zinc-300 hover:bg-white/10 focus:outline-none"
                   aria-label="Close"
                 >
@@ -170,39 +299,181 @@ export function HeaderSearch() {
                       <Search className="h-5 w-5 text-zinc-300" />
                       <input
                         type="text"
-                        placeholder="Search games…"
+                        placeholder="Search games… (Press Enter to see all results)"
+                        value={modalSearchInput}
+                        onChange={(e) => handleModalSearch(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSearchEnter()
+                          }
+                        }}
                         className="w-full bg-transparent text-zinc-200 placeholder:text-zinc-400 outline-none"
                       />
                     </div>
                   </div>
 
-                  {/* Filters row */}
-                  <div className="mb-3 text-sm text-zinc-300">Filters:</div>
+                  {/* Search Results */}
+                  {modalSearchInput && (
+                    <div className="mb-6">
+                      {searching ? (
+                        <div className="text-center py-4">
+                          <div className="text-zinc-400">Searching...</div>
+                        </div>
+                      ) : searchResults.length > 0 ? (
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          <div className="text-zinc-400 text-xs mb-2 px-2">
+                            Found {searchResults.length} results (showing {Math.min(searchResults.length, 20)})
+                            {selectedGenres.length > 0 && (
+                              <span className="ml-2 text-purple-400">
+                                (filtered by {selectedGenres.length} genre{selectedGenres.length > 1 ? 's' : ''})
+                              </span>
+                            )}
+                          </div>
+                          {searchResults.slice(0, 20).map((game, index) => {
+                            if (index === 0) console.log('About to render', searchResults.length, 'search results')
+                            console.log(`Rendering game ${index + 1}:`, game.name, game.cover_url)
+                            return (
+                              <button
+                                key={game.id}
+                                onClick={() => selectGame(game)}
+                                className="w-full flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-left"
+                              >
+                                <div className="w-10 h-12 flex-shrink-0 flex items-center justify-center">
+                                  {game.cover_url ? (
+                                    <img
+                                      src={game.cover_url.startsWith('//') ? `https:${game.cover_url}` : game.cover_url}
+                                      alt={game.name}
+                                      className="w-10 h-12 object-cover rounded"
+                                      onError={(e) => console.log('Image failed to load:', game.cover_url)}
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-12 bg-zinc-700 rounded flex items-center justify-center text-zinc-400 text-xs">
+                                      No
+                                      <br />
+                                      Cover
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-zinc-200 font-medium truncate">
+                                    {game.name}
+                                    <span className="text-zinc-500 text-xs ml-2">
+                                      {game.cover_url ? (game.cover_url.includes('igdb') ? '[IGDB]' : '[DB]') : '[No Cover]'}
+                                    </span>
+                                  </div>
+                                  {game.genres?.length > 0 && (
+                                    <div className="text-zinc-400 text-sm truncate">
+                                      {game.genres.map((g: any) => g.name).join(', ')}
+                                    </div>
+                                  )}
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ) : modalSearchInput.trim() ? (
+                        <div className="text-center py-4">
+                          <div className="text-zinc-400">No games found</div>
+                          {selectedGenres.length === 0 && (
+                            <div className="text-zinc-500 text-xs mt-1">
+                              Try selecting some genres to refine your search
+                            </div>
+                          )}
+                        </div>
+                      ) : selectedGenres.length > 0 ? (
+                        <div className="text-center py-4">
+                          <div className="text-zinc-400">Enter a search term to find games</div>
+                          <div className="text-zinc-500 text-xs mt-1">
+                            Genre filters will be applied to your search
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+
+                  {/* Search All Button */}
+                  {(modalSearchInput.trim() || selectedGenres.length > 0) && (
+                    <div className="mb-4">
+                      <button
+                        onClick={handleSearchEnter}
+                        className="w-full bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                      >
+                        View All Results in Browse Page
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Active Filters row */}
+                  <div className="mb-3 text-sm text-zinc-300">
+                    Active Filters:
+                    {selectedGenres.length === 0 && modalSearchInput.trim() === '' && (
+                      <span className="text-zinc-400 ml-1">None</span>
+                    )}
+                  </div>
                   <div className="mb-5 flex flex-wrap items-center gap-3">
-                    <button className="rounded-md bg-white/10 px-3 py-1.5 text-sm text-zinc-200 hover:bg-white/15">All Types</button>
-                    <button className="rounded-md bg-white/10 px-3 py-1.5 text-sm text-zinc-200 hover:bg-white/15">Most Popular ▾</button>
-                    <button className="rounded-md bg-white/10 px-3 py-1.5 text-sm text-zinc-200 hover:bg-white/15">Year ▾</button>
-                    <button className="rounded-md bg-red-600/90 px-3 py-1.5 text-sm text-white hover:bg-red-600">× Clear</button>
+                    {modalSearchInput.trim() && (
+                      <span className="rounded-md bg-blue-600/90 px-3 py-1.5 text-sm text-white">
+                        Query: "{modalSearchInput.trim()}"
+                      </span>
+                    )}
+                    {selectedGenres.length > 0 && (
+                      <span className="rounded-md bg-purple-600/90 px-3 py-1.5 text-sm text-white">
+                        {selectedGenres.length} Genre{selectedGenres.length > 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {(selectedGenres.length > 0 || modalSearchInput.trim()) && (
+                      <button 
+                        onClick={() => {
+                          setSelectedGenres([])
+                          setModalSearchInput('')
+                          setSearchResults([])
+                        }}
+                        className="rounded-md bg-red-600/90 px-3 py-1.5 text-sm text-white hover:bg-red-600"
+                      >
+                        × Clear All
+                      </button>
+                    )}
                   </div>
 
                   {/* Genres grid (chips) */}
-                  <div className="mb-3 text-sm text-zinc-300">Filter by Genre</div>
-                  <div className="flex flex-wrap gap-2">
-                    {genresLoading && (
-                      <span className="select-none rounded-full bg-white/10 px-3 py-1 text-sm text-zinc-400">Loading…</span>
+                  <div className="mb-3 text-sm text-zinc-300">
+                    Filter by Genre {selectedGenres.length > 0 && (
+                      <span className="text-xs text-zinc-400">({selectedGenres.length} selected)</span>
                     )}
-                    {!genresLoading && genres.length === 0 && (
-                      <span className="select-none rounded-full bg-white/10 px-3 py-1 text-sm text-zinc-400">No genres found</span>
-                    )}
-                    {!genresLoading && genres.map((g) => (
-                      <span
-                        key={g.id ?? g.name}
-                        className="select-none rounded-full bg-white/10 px-3 py-1 text-sm text-zinc-200 hover:bg-white/15"
-                      >
-                        {g.name}
-                      </span>
-                    ))}
                   </div>
+                  <div className="flex flex-wrap gap-2">
+                    {genres.length === 0 && (
+                      <span className="select-none rounded-full bg-white/10 px-3 py-1 text-sm text-zinc-400">Loading genres…</span>
+                    )}
+                    {genres.map((g) => {
+                      const isSelected = selectedGenres.includes(g.id)
+                      return (
+                        <button
+                          key={g.id}
+                          onClick={() => toggleGenre(g.id)}
+                          className={`rounded-full px-3 py-1 text-sm transition-colors ${
+                            isSelected 
+                              ? 'bg-[#5d4af8] text-white font-medium' 
+                              : 'bg-white/10 text-zinc-200 hover:bg-white/15'
+                          }`}
+                        >
+                          {g.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  
+                  {/* Clear genres button */}
+                  {selectedGenres.length > 0 && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => setSelectedGenres([])}
+                        className="text-xs text-zinc-400 hover:text-zinc-300 underline"
+                      >
+                        Clear all genres
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -217,7 +488,7 @@ export function HeaderSearch() {
                 aria-hidden="true"
               />
               {/* Modal Panel */}
-              <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0f1220]/90 shadow-2xl">
+              <div className="relative w-full max-w-md rounded-2xl border border-[#5d4af8]/30 bg-zinc-900/50 shadow-[0_0_20px_rgba(93,74,248,0.3)]">
                 {/* Close button */}
                 <button
                   onClick={() => setIsProfileOpen(false)}
@@ -234,7 +505,30 @@ export function HeaderSearch() {
                       </div>
                       <div>
                         <div className="text-sm text-zinc-400">Signed in</div>
-                        <div className="text-zinc-100 font-medium">{userEmail ?? 'Account'}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-zinc-100 font-medium">{maskedEmail ?? 'Account'}</div>
+                          {userEmail && (
+                            <button
+                              type="button"
+                              onClick={() => setShowEmail((v) => !v)}
+                              className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-0"
+                              aria-pressed={showEmail}
+                              aria-label={showEmail ? 'Hide email' : 'Show email'}
+                            >
+                              {showEmail ? (
+                                <>
+                                  <EyeOff className="h-3 w-3" />
+                                  Hide
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="h-3 w-3" />
+                                  Show
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

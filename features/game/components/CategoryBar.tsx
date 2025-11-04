@@ -10,7 +10,7 @@ export function CategoryBar() {
     { 
       title: "All Games", 
       icon: Gamepad2,
-      href: "/",
+      href: "/browse",
       description: "Browse all games"
     },
     { 
@@ -47,12 +47,17 @@ export function CategoryBar() {
         <div className="flex flex-wrap justify-center gap-2 py-2">
           {categories.map((category) => {
             const Icon = category.icon
+            const isRecommendations = category.title === "Get Recommendations"
             return (
               <Link key={category.title} href={category.href}>
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="flex items-center gap-2 rounded-full bg-sidebar-accent px-3 py-1.5 text-sidebar-accent-foreground shadow-md hover:bg-sidebar-accent/80 hover:shadow-lg hover:scale-105 transition-all duration-200 text-sm md:px-4 md:py-2 md:text-base group"
+                  className={`flex items-center gap-2 rounded-full px-3 py-1.5 shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 text-sm md:px-4 md:py-2 md:text-base group ${
+                    isRecommendations 
+                      ? "bg-gradient-to-r from-purple-600 via-purple-500 to-purple-700 text-white hover:from-purple-700 hover:via-purple-600 hover:to-purple-800" 
+                      : "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/80"
+                  }`}
                   style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.25)" }}
                   title={category.description}
                 >

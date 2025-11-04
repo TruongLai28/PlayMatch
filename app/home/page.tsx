@@ -15,7 +15,7 @@ interface Game {
   }
   summary?: string
   rating?: number
-  genres?: Array<{ name: string }>
+  genres?: Array<{ id: number; name: string }>
 }
 
 // Loading skeleton for hero section
@@ -114,7 +114,7 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-black text-white">
         <HeroSkeleton />
-        <div className="space-y-8 mt-8 relative z-10">
+        <div className="space-y-16 mt-8 mb-16 relative z-10">
           <GameRow title="Recommended for You" games={[]} loading={true} />
           <GameRow title="Popular Games" games={[]} loading={true} />
           <GameRow title="New Releases" games={[]} loading={true} />
@@ -134,19 +134,170 @@ export default function HomePage() {
   ).slice(0, 5) // Limit to 5 slides max
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Hero Section */}
-      {slideshowGames.length > 0 && (
-        <HeroSection 
-          games={slideshowGames}
-        />
-      )}
+    <>
+      <style jsx>{`
+        .gradient-circles {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 1;
+        }
+        .gradient-circle {
+          position: absolute;
+          border-radius: 50%;
+          background: radial-gradient(circle, 
+            rgba(93, 74, 248, 0.15) 0%, 
+            rgba(124, 58, 237, 0.1) 30%, 
+            rgba(93, 74, 248, 0.05) 60%, 
+            transparent 100%);
+          filter: blur(1px);
+          animation: float 20s ease-in-out infinite;
+        }
+        .gradient-circle:nth-child(1) {
+          width: 350px;
+          height: 350px;
+          top: 10%;
+          left: -120px;
+          animation-delay: -2s;
+        }
+        .gradient-circle:nth-child(2) {
+          width: 280px;
+          height: 280px;
+          top: -80px;
+          left: 30%;
+          animation-delay: -7s;
+        }
+        .gradient-circle:nth-child(3) {
+          width: 220px;
+          height: 220px;
+          bottom: 15%;
+          right: -90px;
+          animation-delay: -12s;
+        }
+        .gradient-circle:nth-child(4) {
+          width: 320px;
+          height: 320px;
+          top: 35%;
+          right: 15%;
+          animation-delay: -4s;
+        }
+        .gradient-circle:nth-child(5) {
+          width: 180px;
+          height: 180px;
+          bottom: -60px;
+          left: 15%;
+          animation-delay: -9s;
+        }
+        .gradient-triangle {
+          position: absolute;
+          width: 0;
+          height: 0;
+          filter: blur(2px);
+          animation: triangleFloat 25s ease-in-out infinite;
+        }
+        .gradient-triangle::before {
+          content: '';
+          position: absolute;
+          width: 200px;
+          height: 200px;
+          background: conic-gradient(
+            from 0deg at 50% 50%,
+            rgba(93, 74, 248, 0.12) 0deg,
+            rgba(124, 58, 237, 0.08) 120deg,
+            rgba(93, 74, 248, 0.04) 240deg,
+            rgba(93, 74, 248, 0.12) 360deg
+          );
+          clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+          transform: translate(-50%, -50%);
+        }
+        .gradient-triangle:nth-child(6) {
+          top: 30%;
+          left: 8%;
+          animation-delay: -6s;
+        }
+        .gradient-triangle:nth-child(6)::before {
+          width: 140px;
+          height: 140px;
+        }
+        .gradient-triangle:nth-child(7) {
+          bottom: 35%;
+          left: 45%;
+          animation-delay: -14s;
+        }
+        .gradient-triangle:nth-child(7)::before {
+          width: 160px;
+          height: 160px;
+        }
+        .gradient-triangle:nth-child(8) {
+          top: 8%;
+          right: 20%;
+          animation-delay: -9s;
+        }
+        .gradient-triangle:nth-child(8)::before {
+          width: 120px;
+          height: 120px;
+        }
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px) translateX(0px) scale(1);
+          }
+          25% {
+            transform: translateY(-20px) translateX(10px) scale(1.05);
+          }
+          50% {
+            transform: translateY(15px) translateX(-15px) scale(0.95);
+          }
+          75% {
+            transform: translateY(-10px) translateX(5px) scale(1.02);
+          }
+        }
+        @keyframes triangleFloat {
+          0%, 100% {
+            transform: translateY(0px) translateX(0px) rotate(0deg);
+          }
+          20% {
+            transform: translateY(-15px) translateX(8px) rotate(5deg);
+          }
+          40% {
+            transform: translateY(10px) translateX(-12px) rotate(-3deg);
+          }
+          60% {
+            transform: translateY(-8px) translateX(15px) rotate(7deg);
+          }
+          80% {
+            transform: translateY(12px) translateX(-5px) rotate(-2deg);
+          }
+        }
+      `}</style>
+      
+      <div className="min-h-screen bg-black text-white">
+        {/* Decorative gradient circles and triangles */}
+        <div className="gradient-circles">
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-triangle"></div>
+          <div className="gradient-triangle"></div>
+          <div className="gradient-triangle"></div>
+        </div>
+
+        {/* Hero Section */}
+        {slideshowGames.length > 0 && (
+          <HeroSection 
+            games={slideshowGames}
+          />
+        )}
      
       {/* Category Bar */}
       <CategoryBar />
      
-      {/* Game Rows */}
-  <div className="space-y-8 mt-8 relative z-10 overflow-visible">
+        {/* Game Rows */}
+  <div className="space-y-16 mt-8 mb-16 relative z-10 overflow-visible" style={{ position: 'relative', zIndex: 10 }}>
         <GameRow 
           title="Recommended for You" 
           games={recommendations}
@@ -179,5 +330,6 @@ export default function HomePage() {
         )}
       </div>
     </div>
+    </>
   )
 }

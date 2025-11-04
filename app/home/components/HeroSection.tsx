@@ -120,10 +120,11 @@ export function HeroSection({ games }: HeroSectionProps) {
   }
 
   return (
-    <div className="relative w-full h-[60vh] md:h-[72vh] lg:h-[68vh] overflow-hidden rounded-xl border-2 border-sidebar-border shadow-lg shadow-[hsl(var(--sidebar-border))] bg-gradient-to-r from-transparent to-sidebar-accent/10">
-      <div className={`grid grid-cols-1 md:grid-cols-2 h-full transition-opacity duration-300 ${
-        isTransitioning ? 'opacity-50' : 'opacity-100'
-      }`}>
+    <div className="w-full px-6">
+      <div className="relative max-w-[1600px] mx-auto h-[60vh] md:h-[72vh] lg:h-[68vh] overflow-hidden rounded-xl border-2 border-sidebar-border shadow-lg shadow-[hsl(var(--sidebar-border))] bg-gradient-to-r from-transparent to-sidebar-accent/10">
+        <div className={`grid grid-cols-1 md:grid-cols-2 h-full transition-opacity duration-300 ${
+          isTransitioning ? 'opacity-50' : 'opacity-100'
+        }`}>
         {/* Left: Text content */}
         <div className="relative z-10 flex items-center p-6 md:p-10 lg:p-12">
           <div className="max-w-xl space-y-4">
@@ -246,6 +247,7 @@ export function HeroSection({ games }: HeroSectionProps) {
           animation: slideProgress 5s linear infinite;
         }
       `}</style>
+      </div>
     </div>
   )
 }

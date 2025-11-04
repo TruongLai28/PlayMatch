@@ -1,8 +1,8 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { PinnedCardProvider } from '@/features/game'
 import { Header } from './Header'
+import { Footer } from './Footer'
 // Sidebar removed per request: no SidebarProvider or AppSidebar rendered
 
 interface LayoutProps {
@@ -17,18 +17,17 @@ export function Layout({ children }: LayoutProps) {
 
   // No sidebar/header for landing, login, and auth pages
   if (!shouldShowLayout) {
-    return (
-      <PinnedCardProvider>
-        {children}
-      </PinnedCardProvider>
-    )
+    return children
   }
 
-  // Authenticated pages - with sidebar and header
+  // Authenticated pages - with header and footer
   return (
-    <PinnedCardProvider>
+    <div className="min-h-screen flex flex-col">
       <Header />
-      {children}
-    </PinnedCardProvider>
+      <main className="flex-1">
+        {children}
+      </main>
+      <Footer />
+    </div>
   )
 }

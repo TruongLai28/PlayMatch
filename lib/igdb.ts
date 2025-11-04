@@ -49,25 +49,39 @@ class IGDBClient {
   }
 
   private async makeRequest(endpoint: string, query: string): Promise<Game[]> {
-    const token = await this.getAccessToken()
-    
-    const response = await axios.post(`https://api.igdb.com/v4/${endpoint}`, query, {
-      headers: {
-        'Client-ID': this.clientId,
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'text/plain'
-      }
-    })
+    try {
+      const token = await this.getAccessToken()
+      
+      console.log(`IGDB API: Making request to ${endpoint} with query:`, query.trim())
+      
+      const response = await axios.post(`https://api.igdb.com/v4/${endpoint}`, query, {
+        headers: {
+          'Client-ID': this.clientId,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'text/plain'
+        }
+      })
 
-    return response.data
+      console.log(`IGDB API: Received ${response.data.length} results from ${endpoint}`)
+      if (response.data.length === 0) {
+        console.log('IGDB API: Zero results - this could be due to search term not found or API limits')
+      }
+      return response.data
+    } catch (error: any) {
+      console.error(`IGDB API Error for ${endpoint}:`, error)
+      if (error.response) {
+        console.error('IGDB API Response Error:', error.response.status, error.response.data)
+      }
+      throw error
+    }
   }
 
   async searchGames(query: string): Promise<Game[]> {
+    // First try a basic search without additional filters
     const igdbQuery = `
-      fields name, cover.url, summary, rating, genres.name;
+      fields name, cover.url, summary, rating, genres.name, platforms.name, first_release_date;
       search "${query}";
-      where rating > 50 & category = 0;
-      limit 7;
+      limit 500;
     `
     
     return this.makeRequest('games', igdbQuery)
@@ -110,12 +124,13 @@ class IGDBClient {
 
   async getNewReleases(): Promise<Game[]> {
     const oneYearAgo = Math.floor((Date.now() - 365 * 24 * 60 * 60 * 1000) / 1000)
+    const now = Math.floor(Date.now() / 1000)
     
     const igdbQuery = `
       fields name, cover.url, summary, rating, genres.name, release_dates.date;
-      where release_dates.date > ${oneYearAgo} & rating > 60 & category = 0;
+      where release_dates.date > ${oneYearAgo} & release_dates.date < ${now} & rating > 50 & category = 0;
       sort release_dates.date desc;
-      limit 7;
+      limit 12;
     `
     
     return this.makeRequest('games', igdbQuery)
@@ -125,9 +140,9 @@ class IGDBClient {
     // Basic recommendation logic - can be enhanced with user preferences
     const igdbQuery = `
       fields name, cover.url, summary, rating, genres.name;
-      where rating > 75 & rating_count > 50 & category = 0;
+      where rating > 70 & rating_count > 20 & category = 0;
       sort rating desc;
-      limit 7;
+      limit 12;
     `
     
     return this.makeRequest('games', igdbQuery)
