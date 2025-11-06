@@ -44,7 +44,7 @@ const { Client } = pkg
  */
 export async function POST() {
   const client = new Client({
-    connectionString: process.env.DATABASE_URL, // You'll need to add this to your .env.local
+    connectionString: process.env.DATABASE_URL,
     ssl: {
       rejectUnauthorized: false
     }
@@ -54,16 +54,19 @@ export async function POST() {
     await client.connect()
 
     const tables = [
+      // Enable pgvector extension first
+      `CREATE EXTENSION IF NOT EXISTS vector`,
+      
       // Users table
       `CREATE TABLE IF NOT EXISTS users (
-        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        id UUID PRIMARY KEY,
         email VARCHAR UNIQUE NOT NULL,
         username VARCHAR UNIQUE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       )`,
       
-      // Games table
+      // Games table with vector embedding
       `CREATE TABLE IF NOT EXISTS games (
         id INTEGER PRIMARY KEY,
         name VARCHAR NOT NULL,
@@ -81,6 +84,7 @@ export async function POST() {
         companies JSONB,
         similar_games JSONB,
         screenshots JSONB,
+        embedding vector(384),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       )`,

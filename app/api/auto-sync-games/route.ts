@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { igdbClient } from '../../../lib/igdb'
 import { supabase } from '../../../lib/supabase'
+import { pipeline } from '@xenova/transformers'
+
+// Initialize the embedding model (runs once)
+let generateEmbedding: any = null
+
+async function getEmbeddingModel() {
+  if (!generateEmbedding) {
+    console.log('Loading embedding model...')
+    generateEmbedding = await pipeline('feature-extraction', 'Supabase/gte-small')
+    console.log('Embedding model loaded!')
+  }
+  return generateEmbedding
+}
 
 /**
  * @swagger
@@ -8,8 +21,8 @@ import { supabase } from '../../../lib/supabase'
  *   post:
  *     tags:
  *       - Database Sync
- *     summary: Automatically sync large batches of popular games
- *     description: Automatically fetches and syncs games in batches until target is reached
+ *     summary: Automatically sync large batches of popular games with embeddings
+ *     description: Automatically fetches and syncs games in batches with AI embeddings until target is reached
  *     parameters:
  *       - in: query
  *         name: target
@@ -43,6 +56,9 @@ export async function POST(request: NextRequest) {
 
     console.log(`Starting auto-sync: Target=${validatedTarget}, Batches=${batches}, BatchSize=${validatedBatchSize}`)
 
+    // Load embedding model
+    const embeddingModel = await getEmbeddingModel()
+
     for (let i = 0; i < batches; i++) {
       const offset = i * validatedBatchSize
       
@@ -55,25 +71,46 @@ export async function POST(request: NextRequest) {
           break
         }
 
-        // Transform IGDB data to match our database schema
-        const gamesToInsert = igdbGames.map((game: any) => ({
-          id: game.id,
-          name: game.name,
-          summary: game.summary || null,
-          rating: game.rating || null,
-          cover_url: game.cover?.url ? `https:${game.cover.url}` : null,
-          first_release_date: game.first_release_date || null,
-          genres: game.genres || null,
-          platforms: game.platforms || null,
-          themes: game.themes || null,
-          keywords: game.keywords || null,
-          game_modes: game.game_modes || null,
-          player_perspectives: game.player_perspectives || null,
-          age_ratings: game.age_ratings || null,
-          companies: game.involved_companies || null,
-          similar_games: game.similar_games || null,
-          screenshots: game.screenshots || null
-        }))
+        // Transform IGDB data and generate embeddings
+        const gamesToInsert = await Promise.all(
+          igdbGames.map(async (game: any) => {
+            // Generate embedding from summary (or fallback to name if no summary)
+            const textToEmbed = game.summary || game.name || ''
+            let embedding = null
+
+            if (textToEmbed.trim()) {
+              try {
+                const output = await embeddingModel(textToEmbed, {
+                  pooling: 'mean',
+                  normalize: true,
+                })
+                embedding = Array.from(output.data)
+              } catch (embError) {
+                console.error(`Failed to generate embedding for game ${game.id}:`, embError)
+              }
+            }
+
+            return {
+              id: game.id,
+              name: game.name,
+              summary: game.summary || null,
+              rating: game.rating || null,
+              cover_url: game.cover?.url ? `https:${game.cover.url}` : null,
+              first_release_date: game.first_release_date || null,
+              genres: game.genres || null,
+              platforms: game.platforms || null,
+              themes: game.themes || null,
+              keywords: game.keywords || null,
+              game_modes: game.game_modes || null,
+              player_perspectives: game.player_perspectives || null,
+              age_ratings: game.age_ratings || null,
+              companies: game.involved_companies || null,
+              similar_games: game.similar_games || null,
+              screenshots: game.screenshots || null,
+              embedding: embedding
+            }
+          })
+        )
 
         // Insert into Supabase
         const { data, error } = await supabase
@@ -103,6 +140,7 @@ export async function POST(request: NextRequest) {
           offset,
           fetched: gamesToInsert.length,
           inserted: data?.length || 0,
+          withEmbeddings: gamesToInsert.filter(g => g.embedding).length,
           status: 'success'
         })
 
