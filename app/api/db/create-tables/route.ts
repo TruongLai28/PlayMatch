@@ -4,7 +4,7 @@ const { Client } = pkg
 
 /**
  * @swagger
- * /api/create-tables:
+ * /api/db/create-tables:
  *   post:
  *     tags:
  *       - Database Setup
@@ -44,7 +44,7 @@ const { Client } = pkg
  */
 export async function POST() {
   const client = new Client({
-    connectionString: process.env.DATABASE_URL, // You'll need to add this to your .env.local
+    connectionString: process.env.DATABASE_URL,
     ssl: {
       rejectUnauthorized: false
     }
@@ -54,16 +54,19 @@ export async function POST() {
     await client.connect()
 
     const tables = [
+      // Enable pgvector extension first
+      `CREATE EXTENSION IF NOT EXISTS vector`,
+      
       // Users table
       `CREATE TABLE IF NOT EXISTS users (
-        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        id UUID PRIMARY KEY,
         email VARCHAR UNIQUE NOT NULL,
         username VARCHAR UNIQUE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       )`,
       
-      // Games table
+      // Games table with vector embedding
       `CREATE TABLE IF NOT EXISTS games (
         id INTEGER PRIMARY KEY,
         name VARCHAR NOT NULL,
@@ -81,8 +84,42 @@ export async function POST() {
         companies JSONB,
         similar_games JSONB,
         screenshots JSONB,
+        embedding vector(384),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )`,
+      
+      // User game library (games owned/added by user)
+      `CREATE TABLE IF NOT EXISTS user_library (
+        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        game_id INTEGER REFERENCES games(id) ON DELETE CASCADE,
+        status VARCHAR DEFAULT 'backlog', -- backlog, playing, completed, dropped
+        hours_played DECIMAL DEFAULT 0,
+        added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(user_id, game_id)
+      )`,
+      
+      // User playlists
+      `CREATE TABLE IF NOT EXISTS playlists (
+        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR NOT NULL,
+        description TEXT,
+        is_public BOOLEAN DEFAULT false,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )`,
+      
+      // Playlist items (games in a playlist)
+      `CREATE TABLE IF NOT EXISTS playlist_items (
+        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        playlist_id UUID REFERENCES playlists(id) ON DELETE CASCADE,
+        game_id INTEGER REFERENCES games(id) ON DELETE CASCADE,
+        position INTEGER, -- order in playlist
+        added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(playlist_id, game_id)
       )`,
       
       // User preferences table
@@ -159,35 +196,19 @@ export async function POST() {
  *     responses:
  *       200:
  *         description: Information about database tables
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Use POST method to create tables"
- *                 tables:
- *                   type: array
- *                   items:
- *                     type: string
- *                   example: ["users", "games", "user_preferences", "user_ratings", "recommendations"]
- *                 environment:
- *                   type: object
- *                   properties:
- *                     required_env:
- *                       type: string
- *                       example: "DATABASE_URL"
  */
 export async function GET() {
   return NextResponse.json({ 
     message: 'Use POST method to create tables',
     tables: [
       'users - User profiles and authentication',
-      'games - Cached game data from IGDB',
+      'games - Cached game data from IGDB with AI embeddings',
+      'user_library - Games owned/tracked by users (backlog, playing, completed)',
+      'playlists - User-created game playlists',
+      'playlist_items - Games in each playlist',
       'user_preferences - User gaming preferences',
       'user_ratings - User game ratings and reviews',
-      'recommendations - Generated recommendations'
+      'recommendations - AI-generated recommendations'
     ],
     environment: {
       required_env: 'DATABASE_URL',
