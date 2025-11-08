@@ -68,6 +68,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const statusFilter = searchParams.get('status')
+    const limit = parseInt(searchParams.get('limit') || '50') // Add pagination
+    const offset = parseInt(searchParams.get('offset') || '0')
 
     const client = new Client({
       connectionString: process.env.DATABASE_URL,
@@ -77,41 +79,53 @@ export async function GET(request: NextRequest) {
     await client.connect()
 
     try {
+      // Optimized query with indexes and limited fields
       let query = `
         SELECT 
           ul.id,
-          ul.user_id,
           ul.game_id,
           ul.status,
           ul.hours_played,
           ul.added_at,
           ul.updated_at,
           g.name,
-          g.summary,
           g.rating,
           g.cover_url,
           g.genres,
           g.platforms
         FROM user_library ul
-        LEFT JOIN games g ON ul.game_id = g.id
+        INNER JOIN games g ON ul.game_id = g.id
         WHERE ul.user_id = $1
       `
       
       const params = [user.id]
+      let paramCount = 1
 
       if (statusFilter) {
-        query += ` AND ul.status = $2`
+        paramCount++
+        query += ` AND ul.status = $${paramCount}`
         params.push(statusFilter)
       }
 
-      query += ` ORDER BY ul.added_at DESC`
+      query += ` ORDER BY ul.added_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`
+      params.push(limit.toString(), offset.toString())
 
-      const result = await client.query(query, params)
+      // Use Promise.all for parallel queries if count is needed
+      const [result, countResult] = await Promise.all([
+        client.query(query, params),
+        statusFilter 
+          ? client.query('SELECT COUNT(*) FROM user_library WHERE user_id = $1 AND status = $2', [user.id, statusFilter])
+          : client.query('SELECT COUNT(*) FROM user_library WHERE user_id = $1', [user.id])
+      ])
 
-      return NextResponse.json({
+      const totalCount = parseInt(countResult.rows[0].count)
+
+      const response = NextResponse.json({
         message: 'Library retrieved successfully',
         userId: user.id,
         count: result.rows.length,
+        totalCount,
+        hasMore: offset + limit < totalCount,
         library: result.rows.map(row => ({
           id: row.id,
           gameId: row.game_id,
@@ -122,14 +136,36 @@ export async function GET(request: NextRequest) {
           game: {
             id: row.game_id,
             name: row.name,
-            summary: row.summary,
             rating: parseFloat(row.rating) || null,
             coverUrl: row.cover_url,
-            genres: Array.isArray(row.genres) ? row.genres : (row.genres ? JSON.parse(row.genres) : []),
-            platforms: Array.isArray(row.platforms) ? row.platforms : (row.platforms ? JSON.parse(row.platforms) : [])
+            genres: (() => {
+              try {
+                if (Array.isArray(row.genres)) return row.genres;
+                if (row.genres && typeof row.genres === 'string') return JSON.parse(row.genres);
+                return [];
+              } catch (e) {
+                console.warn('Failed to parse genres for game', row.game_id, e);
+                return [];
+              }
+            })(),
+            platforms: (() => {
+              try {
+                if (Array.isArray(row.platforms)) return row.platforms;
+                if (row.platforms && typeof row.platforms === 'string') return JSON.parse(row.platforms);
+                return [];
+              } catch (e) {
+                console.warn('Failed to parse platforms for game', row.game_id, e);
+                return [];
+              }
+            })()
           }
         }))
       })
+
+      // Add cache headers to improve performance
+      response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=300')
+      
+      return response
 
     } finally {
       await client.end()

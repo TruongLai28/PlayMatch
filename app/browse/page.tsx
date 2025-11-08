@@ -628,34 +628,63 @@ export default function BrowsePage() {
                 <h3 className="text-sm font-medium text-zinc-300 mb-3">Quick Filters</h3>
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    variant={filters.sortBy === 'popular' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => handleFilterChange('sortBy', 'popular')}
-                    className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
-                  >
-                    Most Popular
-                  </Button>
-                  <Button
                     variant={filters.sortBy === 'rating' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => handleFilterChange('sortBy', 'rating')}
-                    className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
+                    onClick={() => {
+                      if (filters.sortBy === 'rating') {
+                        // If already selected, reset to default
+                        handleFilterChange('sortBy', 'popular')
+                        handleFilterChange('minRating', undefined)
+                      } else {
+                        // If not selected, apply the filter
+                        handleFilterChange('sortBy', 'rating')
+                        handleFilterChange('minRating', 90)
+                      }
+                    }}
+                    className={filters.sortBy === 'rating' 
+                      ? "bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white border-[#5d4af8]" 
+                      : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300"
+                    }
                   >
-                    Highest Rated
+                    Highest Rated (90+)
                   </Button>
                   <Button
                     variant={filters.sortBy === 'release_date' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => handleFilterChange('sortBy', 'release_date')}
-                    className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
+                    onClick={() => {
+                      if (filters.sortBy === 'release_date') {
+                        // If already selected, reset to default
+                        handleFilterChange('sortBy', 'popular')
+                        handleFilterChange('selectedYear', undefined)
+                      } else {
+                        // If not selected, apply the filter
+                        handleFilterChange('sortBy', 'release_date')
+                        handleFilterChange('selectedYear', 2025)
+                      }
+                    }}
+                    className={filters.sortBy === 'release_date' 
+                      ? "bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white border-[#5d4af8]" 
+                      : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300"
+                    }
                   >
-                    New Releases
+                    New Releases (2025)
                   </Button>
                   <Button
                     variant={filters.sortBy === 'name' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => handleFilterChange('sortBy', 'name')}
-                    className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
+                    onClick={() => {
+                      if (filters.sortBy === 'name') {
+                        // If already selected, reset to default
+                        handleFilterChange('sortBy', 'popular')
+                      } else {
+                        // If not selected, apply the filter
+                        handleFilterChange('sortBy', 'name')
+                      }
+                    }}
+                    className={filters.sortBy === 'name' 
+                      ? "bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white border-[#5d4af8]" 
+                      : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300"
+                    }
                   >
                     A-Z
                   </Button>
@@ -672,7 +701,10 @@ export default function BrowsePage() {
                       variant={filters.selectedGenres.includes(genre.name) ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => handleGenreToggle(genre.name)}
-                      className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-xs"
+                      className={filters.selectedGenres.includes(genre.name)
+                        ? "bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white border-[#5d4af8] text-xs"
+                        : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-200 text-xs"
+                      }
                     >
                       {genre.name}
                       {filters.selectedGenres.includes(genre.name) && (
@@ -709,7 +741,10 @@ export default function BrowsePage() {
                             : [...filters.selectedPlatforms, platform.id]
                           handleFilterChange('selectedPlatforms', newPlatforms)
                         }}
-                        className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-xs"
+                        className={filters.selectedPlatforms.includes(platform.id)
+                          ? "bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white border-[#5d4af8] text-xs"
+                          : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-200 text-xs"
+                        }
                       >
                         {platform.name}
                       </Button>
@@ -738,7 +773,10 @@ export default function BrowsePage() {
                           handleFilterChange('selectedYear', yearOption.value)
                           setCustomYearInput('') // Clear custom input when selecting preset
                         }}
-                        className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-xs"
+                        className={filters.selectedYear === yearOption.value
+                          ? "bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white border-[#5d4af8] text-xs"
+                          : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-200 text-xs"
+                        }
                       >
                         {yearOption.label}
                       </Button>

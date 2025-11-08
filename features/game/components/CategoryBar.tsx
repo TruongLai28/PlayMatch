@@ -20,7 +20,7 @@ export function CategoryBar() {
       description: "Trending games"
     },
     { 
-      title: "Get Recommendations", 
+      title: "Get Recs!", 
       icon: Sparkles,
       href: "/recommendations",
       description: "AI-powered game suggestions"
@@ -42,12 +42,12 @@ export function CategoryBar() {
 
   return (
     <nav aria-label="Game categories" className="mt-4">
-      {/* match the header island width and center beneath it */}
-      <div className="mx-auto w-full max-w-4xl px-4">
-        <div className="flex flex-wrap justify-center gap-2 py-2">
+      {/* center based on the Get Recs! button position */}
+      <div className="max-w-[1600px] mx-auto px-6">
+        <div className="flex flex-wrap justify-center gap-2 py-2" style={{ transform: 'translateX(17px)' }}>
           {categories.map((category) => {
             const Icon = category.icon
-            const isRecommendations = category.title === "Get Recommendations"
+            const isRecommendations = category.title === "Get Recs!"
             return (
               <Link key={category.title} href={category.href}>
                 <Button

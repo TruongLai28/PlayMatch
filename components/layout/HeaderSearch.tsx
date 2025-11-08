@@ -7,6 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
+import { ExpandedGameCard } from "@/features/game/components/ExpandedGameCard"
 
 export function HeaderSearch() {
   const [searchInput, setSearchInput] = React.useState('')
@@ -23,6 +24,8 @@ export function HeaderSearch() {
   const [selectedYear, setSelectedYear] = React.useState<number | undefined>(undefined)
   const [minRating, setMinRating] = React.useState<number | undefined>(undefined)
   const [maxRating, setMaxRating] = React.useState<number | undefined>(undefined)
+  const [selectedGame, setSelectedGame] = React.useState<any | null>(null)
+  const [showExpandedCard, setShowExpandedCard] = React.useState(false)
   const pathname = usePathname() ?? '/'
   const router = useRouter()
 
@@ -222,10 +225,42 @@ export function HeaderSearch() {
 
   const selectGame = (game: any) => {
     console.log('Selected game:', game.name, 'ID:', game.id)
+    setSelectedGame(game)
+    setShowExpandedCard(true)
     setIsSearchOpen(false)
     setModalSearchInput('')
     setSearchResults([])
-    router.push(`/recommendations?seedId=${game.id}`)
+  }
+
+  const handleCloseExpandedCard = () => {
+    setShowExpandedCard(false)
+    setSelectedGame(null)
+  }
+
+  const handleAddToLibrary = async (gameId: number, status: string = 'backlog', hoursPlayed: number = 0) => {
+    try {
+      const response = await fetch('/api/db/user-library', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gameId,
+          status,
+          hoursPlayed
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to add game to library')
+      }
+
+      console.log('Game added to library successfully')
+      return true
+    } catch (error) {
+      console.error('Error adding game to library:', error)
+      throw error
+    }
   }
 
   const closeSearchModal = () => {
@@ -298,7 +333,7 @@ export function HeaderSearch() {
           <nav className="inline-flex items-center gap-2 text-sm rounded-full px-2 py-1 bg-[#5d4af8]/15 backdrop-blur-md shadow-sm">
             {/* Brand inside the pill */}
             <button
-              onClick={() => router.push('/recommendations')}
+              onClick={() => router.push('/')}
               className="mr-1 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-sm text-[#e6e6ff] hover:bg-[#5d4af8]/10 focus:outline-none focus:ring-0"
               aria-label="PlayMatch Home"
             >
@@ -306,6 +341,7 @@ export function HeaderSearch() {
               <span className="font-semibold tracking-tight">PlayMatch</span>
             </button>
             <NavItem href="/home">Home</NavItem>
+            <NavItem href="/recommendations">Recommendations</NavItem>
             <NavItem href="/library">Library</NavItem>
 
             {/* inline search input inside the pill */}
@@ -751,21 +787,15 @@ export function HeaderSearch() {
 
                   <div className="mt-2 grid gap-2">
                     <button
-                      onClick={() => { setIsProfileOpen(false); router.push('/profile') }}
-                      className="w-full justify-start rounded-md bg-white/10 px-3 py-2 text-left text-zinc-200 hover:bg-white/15"
-                    >
-                      View Profile
-                    </button>
-                    <button
                       onClick={async () => {
                         try {
                           await supabase.auth.signOut()
                         } finally {
                           setIsProfileOpen(false)
-                          router.push('/login')
+                          router.push('/')
                         }
                       }}
-                      className="mt-2 inline-flex w-full items-center justify-between rounded-md bg-red-600/90 px-3 py-2 text-left text-white hover:bg-red-600"
+                      className="inline-flex w-full items-center justify-between rounded-md bg-red-600/90 px-3 py-2 text-left text-white hover:bg-red-600"
                     >
                       <span>Sign out</span>
                       <LogOut className="h-4 w-4" />
@@ -776,12 +806,29 @@ export function HeaderSearch() {
             </div>
           )}
         </div>
+
+        {/* Expanded Game Card Modal */}
+        {selectedGame && (
+          <ExpandedGameCard
+            game={selectedGame}
+            isOpen={showExpandedCard}
+            onClose={handleCloseExpandedCard}
+            onAddToLibrary={(status, hoursPlayed) => {
+              const safeStatus = status !== undefined ? status : 'backlog'
+              return handleAddToLibrary(selectedGame.id, safeStatus, hoursPlayed)
+            }}
+            onPlay={() => {
+              handleCloseExpandedCard()
+            }}
+          />
+        )}
       </div>
     )
   }
 
   return (
-    <div className="flex w-full items-center gap-4">
+    <>
+      <div className="flex w-full items-center gap-4">
       {/* Logo */}
       <div className="flex items-center gap-2">
         <Gamepad2 className="h-6 w-6 text-[#5d4af8]" />
@@ -821,5 +868,22 @@ export function HeaderSearch() {
 
       <div className="ml-auto" />
     </div>
+
+    {/* Expanded Game Card Modal */}
+    {selectedGame && (
+      <ExpandedGameCard
+        game={selectedGame}
+        isOpen={showExpandedCard}
+        onClose={handleCloseExpandedCard}
+        onAddToLibrary={(status, hoursPlayed) => {
+          const safeStatus = status !== undefined ? status : 'backlog'
+          return handleAddToLibrary(selectedGame.id, safeStatus, hoursPlayed)
+        }}
+        onPlay={() => {
+          handleCloseExpandedCard()
+        }}
+      />
+    )}
+  </>
   )
 }

@@ -537,11 +537,11 @@ export default function RecommendationsPage() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
-              AI Game Discovery
+              Discover Your Match
             </h1>
           </div>
           <p className="text-zinc-300 text-xl mb-4 max-w-3xl mx-auto">
-            Powered by advanced machine learning and vector similarity search
+            
           </p>
           <p className="text-zinc-500 text-base max-w-2xl mx-auto">
             Our AI analyzes gameplay patterns, themes, player sentiment, and semantic relationships to find games that truly match your preferences.

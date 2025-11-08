@@ -153,7 +153,7 @@ export function ExpandedGameCard({
   if (!isOpen || !isMounted) return null
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -162,7 +162,7 @@ export function ExpandedGameCard({
       />
       
       {/* Modal Panel */}
-      <div className="relative w-full max-w-6xl rounded-2xl border border-[#5d4af8]/30 bg-zinc-900/50 shadow-[0_0_20px_rgba(93,74,248,0.3)] hover:shadow-[0_0_30px_rgba(93,74,248,0.4)] transition-shadow duration-300 overflow-hidden max-h-[80vh]">
+      <div className="relative w-full max-w-6xl h-full max-h-[90vh] rounded-2xl border border-[#5d4af8]/30 bg-zinc-900/50 shadow-[0_0_20px_rgba(93,74,248,0.3)] hover:shadow-[0_0_30px_rgba(93,74,248,0.4)] transition-shadow duration-300 overflow-hidden flex flex-col">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -173,19 +173,20 @@ export function ExpandedGameCard({
         </button>
         
         {/* Split Layout Container */}
-        <div className="flex flex-col lg:flex-row min-h-[600px]">
+        <div className="flex flex-col md:flex-row flex-1 min-h-0">
           
           {/* Left Side - Game Information */}
-          <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-            
-            {/* Game Title */}
-            <div className="mb-6">
-              <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-                {game.name}
-              </h1>
+          <div className="flex-1 overflow-y-auto scrollbar-hide">
+            <div className="p-4 md:p-6 lg:p-8 pb-8">
               
-              {/* Rating and Release Date Row */}
-              <div className="flex items-center gap-4 mb-6">
+              {/* Game Title */}
+              <div className="mb-4 md:mb-6">
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 md:mb-4">
+                  {game.name}
+                </h1>
+                
+                {/* Rating and Release Date Row */}
+                <div className="flex flex-wrap items-center gap-3 md:gap-4 mb-4 md:mb-6">
                 {(game.rating || game.total_rating) && (
                   <div className="flex items-center space-x-1 bg-green-600/20 px-3 py-2 rounded-full">
                     <Star className="h-4 w-4 text-green-400 fill-green-400" />
@@ -274,7 +275,7 @@ export function ExpandedGameCard({
                     if (words.length <= 130) {
                       return game.summary;
                     }
-                    return words.slice(0, 110).join(' ') + '...';
+                    return words.slice(0, 80).join(' ') + '...';
                   })()}
                 </p>
               </div>
@@ -377,10 +378,11 @@ export function ExpandedGameCard({
             
             </div>
           </div>
+          </div>
 
           {/* Right Side - Game Cover */}
-          <div className="w-full lg:w-96 bg-gradient-to-b from-zinc-800/50 to-zinc-900/50 flex items-center justify-center p-6 border-l border-[#5d4af8]/20">
-            <div className="relative w-full max-w-sm">
+          <div className="w-full md:w-80 lg:w-96 bg-gradient-to-b from-zinc-800/50 to-zinc-900/50 flex items-center justify-center p-4 md:p-6 border-t md:border-t-0 md:border-l border-[#5d4af8]/20">
+            <div className="relative w-full max-w-xs md:max-w-sm">
               <img
                 src={getCoverUrl(game.cover?.url || (game as any).cover_url)}
                 alt={game.name}
