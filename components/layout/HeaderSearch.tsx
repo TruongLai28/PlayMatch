@@ -19,6 +19,10 @@ export function HeaderSearch() {
   const [searchResults, setSearchResults] = React.useState<any[]>([])
   const [searching, setSearching] = React.useState(false)
   const [selectedGenres, setSelectedGenres] = React.useState<number[]>([])
+  const [selectedPlatforms, setSelectedPlatforms] = React.useState<number[]>([])
+  const [selectedYear, setSelectedYear] = React.useState<number | undefined>(undefined)
+  const [minRating, setMinRating] = React.useState<number | undefined>(undefined)
+  const [maxRating, setMaxRating] = React.useState<number | undefined>(undefined)
   const pathname = usePathname() ?? '/'
   const router = useRouter()
 
@@ -125,6 +129,25 @@ export function HeaderSearch() {
         url += `&${genreParams}`
       }
       
+      // Add platform filters if any are selected
+      if (selectedPlatforms.length > 0) {
+        const platformParams = selectedPlatforms.map(id => `platform_id=${id}`).join('&')
+        url += `&${platformParams}`
+      }
+      
+      // Add year filter if selected
+      if (selectedYear) {
+        url += `&year=${selectedYear}`
+      }
+      
+      // Add rating filters if selected
+      if (minRating !== undefined) {
+        url += `&min_rating=${minRating}`
+      }
+      if (maxRating !== undefined) {
+        url += `&max_rating=${maxRating}`
+      }
+      
       console.log('Search URL:', url)
       const response = await fetch(url)
       
@@ -147,6 +170,7 @@ export function HeaderSearch() {
   }
 
   // Debounced search effect
+  // Search whenever modalSearchInput or any filters change
   React.useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (modalSearchInput.trim()) {
@@ -157,14 +181,14 @@ export function HeaderSearch() {
     }, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [modalSearchInput, selectedGenres])
+  }, [modalSearchInput, selectedGenres, selectedPlatforms, selectedYear, minRating, maxRating])
 
   const handleModalSearch = React.useCallback((query: string) => {
     setModalSearchInput(query)
   }, [])
 
   const handleSearchEnter = () => {
-    if (modalSearchInput.trim() || selectedGenres.length > 0) {
+    if (modalSearchInput.trim() || selectedGenres.length > 0 || selectedPlatforms.length > 0 || selectedYear || minRating !== undefined || maxRating !== undefined) {
       // Build URL with search parameters
       const params = new URLSearchParams()
       if (modalSearchInput.trim()) {
@@ -174,6 +198,20 @@ export function HeaderSearch() {
         selectedGenres.forEach(genreId => {
           params.append('genre_id', genreId.toString())
         })
+      }
+      if (selectedPlatforms.length > 0) {
+        selectedPlatforms.forEach(platformId => {
+          params.append('platform_id', platformId.toString())
+        })
+      }
+      if (selectedYear) {
+        params.set('year', selectedYear.toString())
+      }
+      if (minRating !== undefined) {
+        params.set('min_rating', minRating.toString())
+      }
+      if (maxRating !== undefined) {
+        params.set('max_rating', maxRating.toString())
       }
       
       // Navigate to browse page with search parameters
@@ -195,6 +233,10 @@ export function HeaderSearch() {
     setModalSearchInput('')
     setSearchResults([])
     setSelectedGenres([])
+    setSelectedPlatforms([])
+    setSelectedYear(undefined)
+    setMinRating(undefined)
+    setMaxRating(undefined)
   }
 
   const toggleGenre = (genreId: number) => {
@@ -206,6 +248,18 @@ export function HeaderSearch() {
       
       const genreName = genres.find(g => g.id === genreId)?.name || 'Unknown'
       console.log('Genre toggled:', `${genreName} (ID: ${genreId})`, 'Selected genres:', newSelection)
+      return newSelection
+    })
+  }
+
+  const togglePlatform = (platformId: number) => {
+    setSelectedPlatforms(prev => {
+      const isSelected = prev.includes(platformId)
+      const newSelection = isSelected 
+        ? prev.filter(id => id !== platformId)
+        : [...prev, platformId]
+      
+      console.log('Platform toggled:', `Platform ID: ${platformId}`, 'Selected platforms:', newSelection)
       return newSelection
     })
   }
@@ -406,7 +460,7 @@ export function HeaderSearch() {
                   {/* Active Filters row */}
                   <div className="mb-3 text-sm text-zinc-300">
                     Active Filters:
-                    {selectedGenres.length === 0 && modalSearchInput.trim() === '' && (
+                    {selectedGenres.length === 0 && selectedPlatforms.length === 0 && !selectedYear && minRating === undefined && maxRating === undefined && modalSearchInput.trim() === '' && (
                       <span className="text-zinc-400 ml-1">None</span>
                     )}
                   </div>
@@ -421,10 +475,29 @@ export function HeaderSearch() {
                         {selectedGenres.length} Genre{selectedGenres.length > 1 ? 's' : ''}
                       </span>
                     )}
-                    {(selectedGenres.length > 0 || modalSearchInput.trim()) && (
+                    {selectedPlatforms.length > 0 && (
+                      <span className="rounded-md bg-emerald-600/90 px-3 py-1.5 text-sm text-white">
+                        {selectedPlatforms.length} Platform{selectedPlatforms.length > 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {selectedYear && (
+                      <span className="rounded-md bg-amber-600/90 px-3 py-1.5 text-sm text-white">
+                        Year: {selectedYear}
+                      </span>
+                    )}
+                    {(minRating !== undefined || maxRating !== undefined) && (
+                      <span className="rounded-md bg-rose-600/90 px-3 py-1.5 text-sm text-white">
+                        Rating: {minRating || 0}-{maxRating || 100}
+                      </span>
+                    )}
+                    {(selectedGenres.length > 0 || selectedPlatforms.length > 0 || selectedYear || minRating !== undefined || maxRating !== undefined || modalSearchInput.trim()) && (
                       <button 
                         onClick={() => {
                           setSelectedGenres([])
+                          setSelectedPlatforms([])
+                          setSelectedYear(undefined)
+                          setMinRating(undefined)
+                          setMaxRating(undefined)
                           setModalSearchInput('')
                           setSearchResults([])
                         }}
@@ -465,12 +538,155 @@ export function HeaderSearch() {
                   
                   {/* Clear genres button */}
                   {selectedGenres.length > 0 && (
-                    <div className="mt-2">
+                    <div className="mt-2 mb-4">
                       <button
                         onClick={() => setSelectedGenres([])}
                         className="text-xs text-zinc-400 hover:text-zinc-300 underline"
                       >
                         Clear all genres
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Platform Filters */}
+                  <div className="mb-3 mt-6 text-sm text-zinc-300">
+                    Filter by Platform {selectedPlatforms.length > 0 && (
+                      <span className="text-xs text-zinc-400">({selectedPlatforms.length} selected)</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { id: 6, name: 'PC' },
+                      { id: 48, name: 'PS4' },
+                      { id: 167, name: 'PS5' },
+                      { id: 49, name: 'Xbox One' },
+                      { id: 169, name: 'Xbox Series' },
+                      { id: 130, name: 'Switch' },
+                      { id: 34, name: 'Android' },
+                      { id: 39, name: 'iOS' },
+                      { id: 14, name: 'Mac' },
+                      { id: 3, name: 'Linux' }
+                    ].map((platform) => {
+                      const isSelected = selectedPlatforms.includes(platform.id)
+                      return (
+                        <button
+                          key={platform.id}
+                          onClick={() => togglePlatform(platform.id)}
+                          className={`rounded-full px-3 py-1 text-sm transition-colors ${
+                            isSelected 
+                              ? 'bg-emerald-600 text-white font-medium' 
+                              : 'bg-white/10 text-zinc-200 hover:bg-white/15'
+                          }`}
+                        >
+                          {platform.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {selectedPlatforms.length > 0 && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => setSelectedPlatforms([])}
+                        className="text-xs text-zinc-400 hover:text-zinc-300 underline"
+                      >
+                        Clear all platforms
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Year Filter */}
+                  <div className="mb-3 mt-6 text-sm text-zinc-300">
+                    Filter by Release Year
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015].map((year) => {
+                      const isSelected = selectedYear === year
+                      return (
+                        <button
+                          key={year}
+                          onClick={() => setSelectedYear(isSelected ? undefined : year)}
+                          className={`rounded-full px-3 py-1 text-sm transition-colors ${
+                            isSelected 
+                              ? 'bg-amber-600 text-white font-medium' 
+                              : 'bg-white/10 text-zinc-200 hover:bg-white/15'
+                          }`}
+                        >
+                          {year}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {selectedYear && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => setSelectedYear(undefined)}
+                        className="text-xs text-zinc-400 hover:text-zinc-300 underline"
+                      >
+                        Clear year filter
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Rating Filter */}
+                  <div className="mb-3 mt-6 text-sm text-zinc-300">
+                    Filter by Rating
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-zinc-400 mb-1">Min Rating</label>
+                      <select
+                        value={minRating || ''}
+                        onChange={(e) => setMinRating(e.target.value ? Number(e.target.value) : undefined)}
+                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 8px center',
+                          backgroundSize: '16px',
+                          paddingRight: '32px'
+                        }}
+                      >
+                        <option value="" className="bg-zinc-800 text-zinc-200">Any</option>
+                        <option value="90" className="bg-zinc-800 text-zinc-200">90+</option>
+                        <option value="80" className="bg-zinc-800 text-zinc-200">80+</option>
+                        <option value="70" className="bg-zinc-800 text-zinc-200">70+</option>
+                        <option value="60" className="bg-zinc-800 text-zinc-200">60+</option>
+                        <option value="50" className="bg-zinc-800 text-zinc-200">50+</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-zinc-400 mb-1">Max Rating</label>
+                      <select
+                        value={maxRating || ''}
+                        onChange={(e) => setMaxRating(e.target.value ? Number(e.target.value) : undefined)}
+                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 8px center',
+                          backgroundSize: '16px',
+                          paddingRight: '32px'
+                        }}
+                      >
+                        <option value="" className="bg-zinc-800 text-zinc-200">Any</option>
+                        <option value="95" className="bg-zinc-800 text-zinc-200">95 or less</option>
+                        <option value="90" className="bg-zinc-800 text-zinc-200">90 or less</option>
+                        <option value="85" className="bg-zinc-800 text-zinc-200">85 or less</option>
+                        <option value="80" className="bg-zinc-800 text-zinc-200">80 or less</option>
+                        <option value="75" className="bg-zinc-800 text-zinc-200">75 or less</option>
+                      </select>
+                    </div>
+                  </div>
+                  {(minRating !== undefined || maxRating !== undefined) && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => {
+                          setMinRating(undefined)
+                          setMaxRating(undefined)
+                        }}
+                        className="text-xs text-zinc-400 hover:text-zinc-300 underline"
+                      >
+                        Clear rating filters
                       </button>
                     </div>
                   )}

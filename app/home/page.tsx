@@ -6,6 +6,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { HeroSection } from './components/HeroSection'
 import { GameRow, CategoryBar } from '@/features/game'
+import { useLibrary } from '@/hooks/use-library'
+import { useToast, ToastContainer } from '@/hooks/use-toast'
 
 interface Game {
   id: number
@@ -43,6 +45,9 @@ function HeroSkeleton() {
 }
 
 export default function HomePage() {
+  const { addGameToLibrary } = useLibrary()
+  const toast = useToast()
+  
   const [featuredGame, setFeaturedGame] = useState<Game | null>(null)
   const [popularGames, setPopularGames] = useState<Game[]>([])
   const [newReleases, setNewReleases] = useState<Game[]>([])
@@ -88,6 +93,24 @@ export default function HomePage() {
       setError('Failed to load games. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Handle adding game to library
+  const handleAddToLibrary = async (gameId: number, status: 'backlog' | 'playing' | 'completed' | 'dropped' = 'backlog', hoursPlayed: number = 0) => {
+    try {
+      const allGames = [...popularGames, ...newReleases, ...recommendations]
+      const game = allGames.find(g => g.id === gameId)
+      if (!game) {
+        toast.error('Game not found')
+        return
+      }
+
+      await addGameToLibrary(game, status, hoursPlayed)
+      toast.success(`"${game.name}" added to your library!`)
+    } catch (error) {
+      console.error('Error adding to library:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to add game to library')
     }
   }
 
@@ -303,6 +326,10 @@ export default function HomePage() {
           games={recommendations}
           loading={false}
           showCount={true}
+          onAddToLibrary={(gameId, status = 'backlog') => {
+            handleAddToLibrary(gameId, status)
+          }}
+          onMoreInfo={(gameId) => console.log('More info:', gameId)}
         />
        
         <GameRow 
@@ -310,6 +337,10 @@ export default function HomePage() {
           games={popularGames}
           loading={false}
           showCount={true}
+          onAddToLibrary={(gameId, status = 'backlog') => {
+            handleAddToLibrary(gameId, status)
+          }}
+          onMoreInfo={(gameId) => console.log('More info:', gameId)}
         />
        
         <GameRow 
@@ -317,6 +348,10 @@ export default function HomePage() {
           games={newReleases}
           loading={false}
           showCount={true}
+          onAddToLibrary={(gameId, status = 'backlog') => {
+            handleAddToLibrary(gameId, status)
+          }}
+          onMoreInfo={(gameId) => console.log('More info:', gameId)}
         />
 
         {/* Empty State */}
@@ -329,6 +364,9 @@ export default function HomePage() {
           </div>
         )}
       </div>
+      
+      {/* Toast Container */}
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
     </>
   )

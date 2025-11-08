@@ -16,7 +16,7 @@ export function CategoryBar() {
     { 
       title: "Popular", 
       icon: TrendingUp,
-      href: "/recommendations?filter=popular",
+      href: "/browse?year=2025&min_rating=90",
       description: "Trending games"
     },
     { 
@@ -28,13 +28,13 @@ export function CategoryBar() {
     { 
       title: "Top Rated", 
       icon: Star,
-      href: "/recommendations?filter=top-rated",
+      href: "/browse?min_rating=90",
       description: "Highest rated games"
     },
     { 
       title: "New Releases", 
       icon: Clock,
-      href: "/recommendations?filter=new-releases",
+      href: "/browse?year=2025",
       description: "Latest games"
     },
     

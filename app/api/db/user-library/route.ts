@@ -125,8 +125,8 @@ export async function GET(request: NextRequest) {
             summary: row.summary,
             rating: parseFloat(row.rating) || null,
             coverUrl: row.cover_url,
-            genres: row.genres,
-            platforms: row.platforms
+            genres: Array.isArray(row.genres) ? row.genres : (row.genres ? JSON.parse(row.genres) : []),
+            platforms: Array.isArray(row.platforms) ? row.platforms : (row.platforms ? JSON.parse(row.platforms) : [])
           }
         }))
       })
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { gameId, status = 'backlog', hoursPlayed = 0 } = body
+    const { gameId, status, hoursPlayed } = body
 
     if (!gameId) {
       return NextResponse.json({ 
@@ -203,8 +203,11 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    const finalStatus = status || 'backlog'
+    const finalHours = hoursPlayed || 0
+
     const validStatuses = ['backlog', 'playing', 'completed', 'dropped']
-    if (!validStatuses.includes(status)) {
+    if (!validStatuses.includes(finalStatus)) {
       return NextResponse.json({ 
         error: 'Invalid status. Must be one of: backlog, playing, completed, dropped' 
       }, { status: 400 })
@@ -240,7 +243,7 @@ export async function POST(request: NextRequest) {
           hours_played = EXCLUDED.hours_played,
           updated_at = NOW()
         RETURNING *
-      `, [user.id, gameId, status, hoursPlayed])
+      `, [user.id, gameId, finalStatus, finalHours])
 
       const libraryEntry = result.rows[0]
 

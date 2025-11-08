@@ -31,6 +31,8 @@ interface GameRowProps {
   loading?: boolean
   showCount?: boolean
   rowId?: string
+  onAddToLibrary?: (gameId: number, status?: 'backlog' | 'playing' | 'completed' | 'dropped') => void
+  onMoreInfo?: (gameId: number) => void
 }
 
 // Loading skeleton for game row
@@ -59,7 +61,15 @@ function GameRowSkeleton() {
   )
 }
 
-export function GameRow({ title, games, loading = false, showCount = true, rowId }: GameRowProps) {
+export function GameRow({ 
+  title, 
+  games, 
+  loading = false, 
+  showCount = false, 
+  rowId,
+  onAddToLibrary,
+  onMoreInfo 
+}: GameRowProps) {
   const [scrollPosition, setScrollPosition] = useState(0)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -161,6 +171,8 @@ export function GameRow({ title, games, loading = false, showCount = true, rowId
             <GameCard 
               game={game} 
               isLastCard={index === games.length - 1}
+              onAddToLibrary={(status) => onAddToLibrary?.(game.id, status)}
+              onMoreInfo={() => onMoreInfo?.(game.id)}
             />
           </div>
         ))}

@@ -6,7 +6,9 @@ import { Search, Filter, ChevronDown, Grid3X3, List, SlidersHorizontal } from 'l
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { GameCard, GameGrid } from '@/features/game'
+import { GameCard, GameGrid, ExpandedGameCard } from '@/features/game'
+import { useLibrary } from '@/hooks/use-library'
+import { useToast, ToastContainer } from '@/hooks/use-toast'
 
 interface Game {
   id: number
@@ -25,14 +27,19 @@ interface Game {
 interface FilterState {
   searchQuery: string
   selectedGenres: string[]
+  selectedPlatforms: number[]
   sortBy: 'popular' | 'rating' | 'name' | 'release_date'
-  yearRange: string
-  ratingRange: string
+  selectedYear?: number
+  minRating?: number
+  maxRating?: number
 }
 
 export default function BrowsePage() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { addGameToLibrary, isLoading: libraryLoading } = useLibrary()
+  const toast = useToast()
+  
   const [games, setGames] = useState<Game[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -41,21 +48,27 @@ export default function BrowsePage() {
   const [searchResultsCount, setSearchResultsCount] = useState<number>(0)
   const [isSearchMode, setIsSearchMode] = useState(false)
   const [searchInput, setSearchInput] = useState('')
+  const [customYearInput, setCustomYearInput] = useState('')
+  const [selectedGameId, setSelectedGameId] = useState<number | null>(null)
+  const [showExpandedCard, setShowExpandedCard] = useState(false)
   
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
     selectedGenres: [],
-    sortBy: 'popular',
-    yearRange: 'all',
-    ratingRange: 'all'
+    selectedPlatforms: [],
+    sortBy: 'popular'
   })
 
   // Handle URL search parameters
   useEffect(() => {
     const query = searchParams.get('q')
     const genreIds = searchParams.getAll('genre_id')
+    const platformIds = searchParams.getAll('platform_id')
+    const year = searchParams.get('year')
+    const minRating = searchParams.get('min_rating')
+    const maxRating = searchParams.get('max_rating')
     
-    if (query || genreIds.length > 0) {
+    if (query || genreIds.length > 0 || platformIds.length > 0 || year || minRating || maxRating) {
       setIsSearchMode(true)
       setSearchInput(query || '')
       
@@ -90,10 +103,16 @@ export default function BrowsePage() {
         .map(id => genreIdToName[id])
         .filter(name => name !== undefined)
       
+      const platforms = platformIds.map(id => parseInt(id)).filter(id => !isNaN(id))
+      
       setFilters(prev => ({
         ...prev,
         searchQuery: query || '',
-        selectedGenres: genreNames
+        selectedGenres: genreNames,
+        selectedPlatforms: platforms,
+        selectedYear: year ? parseInt(year) : undefined,
+        minRating: minRating ? parseFloat(minRating) : undefined,
+        maxRating: maxRating ? parseFloat(maxRating) : undefined
       }))
     } else {
       setIsSearchMode(false)
@@ -118,14 +137,14 @@ export default function BrowsePage() {
       try {
         setLoading(true)
         
-        // Use search API if there's a search query or selected genres
-        if (filters.searchQuery.trim() || filters.selectedGenres.length > 0) {
+        // Use search API if there's a search query or any filters selected
+        if (filters.searchQuery.trim() || filters.selectedGenres.length > 0 || filters.selectedPlatforms.length > 0 || filters.selectedYear || filters.minRating !== undefined || filters.maxRating !== undefined) {
           setIsSearchMode(true)
           
           // Build search URL
           let url = `/api/new-search-game?q=${encodeURIComponent(filters.searchQuery.trim() || '*')}`
           
-          // Add genre filters - need to convert genre names to IDs
+          // Add genre filters
           if (filters.selectedGenres.length > 0) {
             // Check if we have genre IDs from URL or genre names from UI
             const genreIds = searchParams.getAll('genre_id')
@@ -171,6 +190,33 @@ export default function BrowsePage() {
                 url += `&${genreParams}`
               }
             }
+          }
+          
+          // Add platform filters
+          if (filters.selectedPlatforms.length > 0) {
+            const platformIds = searchParams.getAll('platform_id')
+            if (platformIds.length > 0) {
+              // Use platform IDs directly from URL
+              const platformParams = platformIds.map(id => `platform_id=${id}`).join('&')
+              url += `&${platformParams}`
+            } else {
+              // Use platform IDs from UI filters
+              const platformParams = filters.selectedPlatforms.map(id => `platform_id=${id}`).join('&')
+              url += `&${platformParams}`
+            }
+          }
+          
+          // Add year filter
+          if (filters.selectedYear) {
+            url += `&year=${filters.selectedYear}`
+          }
+          
+          // Add rating filters
+          if (filters.minRating !== undefined) {
+            url += `&min_rating=${filters.minRating}`
+          }
+          if (filters.maxRating !== undefined) {
+            url += `&max_rating=${filters.maxRating}`
           }
           
           console.log('Browse page search URL:', url)
@@ -221,7 +267,7 @@ export default function BrowsePage() {
     }
 
     fetchGames()
-  }, [filters.searchQuery, filters.selectedGenres, filters.sortBy])
+  }, [filters.searchQuery, filters.selectedGenres, filters.selectedPlatforms, filters.sortBy, filters.selectedYear, filters.minRating, filters.maxRating])
 
   // Load IGDB genres for filter dropdown
   useEffect(() => {
@@ -275,24 +321,216 @@ export default function BrowsePage() {
 
   const clearFilters = () => {
     setSearchInput('')
+    setCustomYearInput('')
     setFilters({
       searchQuery: '',
       selectedGenres: [],
-      sortBy: 'popular',
-      yearRange: 'all',
-      ratingRange: 'all'
+      selectedPlatforms: [],
+      sortBy: 'popular'
     })
+    // Clear URL parameters by navigating to base browse page
+    router.push('/browse')
   }
 
   const hasActiveFilters = filters.searchQuery || 
     filters.selectedGenres.length > 0 || 
+    filters.selectedPlatforms.length > 0 ||
     filters.sortBy !== 'popular' || 
-    filters.yearRange !== 'all' || 
-    filters.ratingRange !== 'all'
+    filters.selectedYear !== undefined ||
+    filters.minRating !== undefined ||
+    filters.maxRating !== undefined
+
+  const handleGameSelect = (gameId: number) => {
+    const selectedGame = games.find(game => game.id === gameId)
+    if (selectedGame) {
+      setSelectedGameId(gameId)
+      setShowExpandedCard(true)
+    }
+  }
+
+  const handleCloseExpandedCard = () => {
+    setShowExpandedCard(false)
+    setSelectedGameId(null)
+  }
+
+  const selectedGame = selectedGameId ? games.find(game => game.id === selectedGameId) : null
+
+  // Handle adding game to library
+  const handleAddToLibrary = async (gameId: number, status: 'backlog' | 'playing' | 'completed' | 'dropped', hoursPlayed: number = 0) => {
+    try {
+      const game = games.find(g => g.id === gameId)
+      if (!game) {
+        toast.error('Game not found')
+        return
+      }
+
+      await addGameToLibrary(game, status, hoursPlayed)
+      toast.success(`"${game.name}" added to your library!`)
+    } catch (error) {
+      console.error('Error adding to library:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to add game to library')
+    }
+  }
+
+  // Handle adding game to wishlist (we can treat this as backlog status)
+  const handleAddToWishlist = async (gameId: number) => {
+    await handleAddToLibrary(gameId, 'backlog')
+  }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+    <>
+      <style jsx>{`
+        .gradient-circles {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 1;
+        }
+        .gradient-circle {
+          position: absolute;
+          border-radius: 50%;
+          background: radial-gradient(circle, 
+            rgba(93, 74, 248, 0.15) 0%, 
+            rgba(124, 58, 237, 0.1) 30%, 
+            rgba(93, 74, 248, 0.05) 60%, 
+            transparent 100%);
+          filter: blur(1px);
+          animation: float 20s ease-in-out infinite;
+        }
+        .gradient-circle:nth-child(1) {
+          width: 350px;
+          height: 350px;
+          top: 10%;
+          left: -120px;
+          animation-delay: -2s;
+        }
+        .gradient-circle:nth-child(2) {
+          width: 280px;
+          height: 280px;
+          top: -80px;
+          left: 30%;
+          animation-delay: -7s;
+        }
+        .gradient-circle:nth-child(3) {
+          width: 220px;
+          height: 220px;
+          bottom: 15%;
+          right: -90px;
+          animation-delay: -12s;
+        }
+        .gradient-circle:nth-child(4) {
+          width: 320px;
+          height: 320px;
+          top: 35%;
+          right: 15%;
+          animation-delay: -4s;
+        }
+        .gradient-circle:nth-child(5) {
+          width: 180px;
+          height: 180px;
+          bottom: -60px;
+          left: 15%;
+          animation-delay: -9s;
+        }
+        .gradient-triangle {
+          position: absolute;
+          width: 0;
+          height: 0;
+          filter: blur(2px);
+          animation: triangleFloat 25s ease-in-out infinite;
+        }
+        .gradient-triangle::before {
+          content: '';
+          position: absolute;
+          width: 200px;
+          height: 200px;
+          background: conic-gradient(
+            from 0deg at 50% 50%,
+            rgba(93, 74, 248, 0.12) 0deg,
+            rgba(124, 58, 237, 0.08) 120deg,
+            rgba(93, 74, 248, 0.04) 240deg,
+            rgba(93, 74, 248, 0.12) 360deg
+          );
+          clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+          transform: translate(-50%, -50%);
+        }
+        .gradient-triangle:nth-child(6) {
+          top: 30%;
+          left: 8%;
+          animation-delay: -6s;
+        }
+        .gradient-triangle:nth-child(6)::before {
+          width: 140px;
+          height: 140px;
+        }
+        .gradient-triangle:nth-child(7) {
+          bottom: 35%;
+          left: 45%;
+          animation-delay: -14s;
+        }
+        .gradient-triangle:nth-child(7)::before {
+          width: 160px;
+          height: 160px;
+        }
+        .gradient-triangle:nth-child(8) {
+          top: 8%;
+          right: 20%;
+          animation-delay: -9s;
+        }
+        .gradient-triangle:nth-child(8)::before {
+          width: 120px;
+          height: 120px;
+        }
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px) translateX(0px) scale(1);
+          }
+          25% {
+            transform: translateY(-20px) translateX(10px) scale(1.05);
+          }
+          50% {
+            transform: translateY(15px) translateX(-15px) scale(0.95);
+          }
+          75% {
+            transform: translateY(-10px) translateX(5px) scale(1.02);
+          }
+        }
+        @keyframes triangleFloat {
+          0%, 100% {
+            transform: translateY(0px) translateX(0px) rotate(0deg);
+          }
+          20% {
+            transform: translateY(-15px) translateX(8px) rotate(5deg);
+          }
+          40% {
+            transform: translateY(10px) translateX(-12px) rotate(-3deg);
+          }
+          60% {
+            transform: translateY(-8px) translateX(15px) rotate(7deg);
+          }
+          80% {
+            transform: translateY(12px) translateX(-5px) rotate(-2deg);
+          }
+        }
+      `}</style>
+      
+      <div className="min-h-screen bg-black text-white relative overflow-hidden">
+        {/* Decorative gradient circles and triangles */}
+        <div className="gradient-circles">
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-triangle"></div>
+          <div className="gradient-triangle"></div>
+          <div className="gradient-triangle"></div>
+        </div>
+      
+      <div className="max-w-7xl mx-auto px-6 py-8 relative z-10">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
@@ -446,41 +684,161 @@ export default function BrowsePage() {
               </div>
 
               {/* Additional Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Year Range */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Platform Filter */}
                 <div>
-                  <h3 className="text-sm font-medium text-zinc-300 mb-3">Release Year</h3>
+                  <h3 className="text-sm font-medium text-emerald-400 mb-3">Platform</h3>
                   <div className="flex flex-wrap gap-2">
-                    {['all', '2024', '2023', '2022', '2021', '2020', 'older'].map((year) => (
+                    {[
+                      { id: 6, name: 'PC' },
+                      { id: 167, name: 'PS5' },
+                      { id: 48, name: 'PS4' },
+                      { id: 169, name: 'Xbox Series' },
+                      { id: 49, name: 'Xbox One' },
+                      { id: 130, name: 'Switch' },
+                      { id: 3, name: 'Linux' },
+                      { id: 14, name: 'Mac' }
+                    ].map((platform) => (
                       <Button
-                        key={year}
-                        variant={filters.yearRange === year ? 'default' : 'outline'}
+                        key={platform.id}
+                        variant={filters.selectedPlatforms.includes(platform.id) ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => handleFilterChange('yearRange', year)}
+                        onClick={() => {
+                          const newPlatforms = filters.selectedPlatforms.includes(platform.id)
+                            ? filters.selectedPlatforms.filter(id => id !== platform.id)
+                            : [...filters.selectedPlatforms, platform.id]
+                          handleFilterChange('selectedPlatforms', newPlatforms)
+                        }}
                         className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-xs"
                       >
-                        {year === 'all' ? 'All Years' : year === 'older' ? '2019 & Earlier' : year}
+                        {platform.name}
                       </Button>
                     ))}
                   </div>
                 </div>
 
-                {/* Rating Range */}
+                {/* Year Filter */}
                 <div>
-                  <h3 className="text-sm font-medium text-zinc-300 mb-3">Rating</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {['all', '90+', '80+', '70+', '60+'].map((rating) => (
+                  <h3 className="text-sm font-medium text-amber-400 mb-3">Release Year</h3>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {[
+                      { value: null, label: 'All Years' },
+                      { value: 2025, label: '2025' },
+                      { value: 2024, label: '2024' },
+                      { value: 2023, label: '2023' },
+                      { value: 2022, label: '2022' },
+                      { value: 2021, label: '2021' },
+                      { value: 2020, label: '2020' }
+                    ].map((yearOption) => (
                       <Button
-                        key={rating}
-                        variant={filters.ratingRange === rating ? 'default' : 'outline'}
+                        key={yearOption.label}
+                        variant={filters.selectedYear === yearOption.value ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => handleFilterChange('ratingRange', rating)}
+                        onClick={() => {
+                          handleFilterChange('selectedYear', yearOption.value)
+                          setCustomYearInput('') // Clear custom input when selecting preset
+                        }}
                         className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-xs"
                       >
-                        {rating === 'all' ? 'All Ratings' : rating}
+                        {yearOption.label}
                       </Button>
                     ))}
+                    
+                    {/* Custom Year Input - Inline */}
+                    <div className="flex items-center gap-2 ml-2">
+                      <label className="text-xs text-zinc-400 whitespace-nowrap">or</label>
+                      <Input
+                        type="number"
+                        placeholder="Custom year"
+                        value={customYearInput}
+                        onChange={(e) => setCustomYearInput(e.target.value)}
+                        className="w-24 h-8 px-2 text-xs bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#5d4af8] focus:ring-[#5d4af8]"
+                        min="1970"
+                        max="2030"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          const year = parseInt(customYearInput)
+                          if (!isNaN(year) && year >= 1970 && year <= 2030) {
+                            handleFilterChange('selectedYear', year)
+                            setCustomYearInput('')
+                          }
+                        }}
+                        disabled={!customYearInput || isNaN(parseInt(customYearInput))}
+                        className="h-8 px-3 text-xs bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white"
+                      >
+                        Apply
+                      </Button>
+                    </div>
                   </div>
+                </div>
+
+                {/* Rating Filter */}
+                <div>
+                  <h3 className="text-sm font-medium text-rose-400 mb-3">Rating</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-zinc-400 mb-1">Min Rating</label>
+                      <select
+                        value={filters.minRating || ''}
+                        onChange={(e) => handleFilterChange('minRating', e.target.value ? Number(e.target.value) : undefined)}
+                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 8px center',
+                          backgroundSize: '16px',
+                          paddingRight: '32px'
+                        }}
+                      >
+                        <option value="" className="bg-zinc-800 text-zinc-200">Any</option>
+                        <option value="90" className="bg-zinc-800 text-zinc-200">90+</option>
+                        <option value="80" className="bg-zinc-800 text-zinc-200">80+</option>
+                        <option value="70" className="bg-zinc-800 text-zinc-200">70+</option>
+                        <option value="60" className="bg-zinc-800 text-zinc-200">60+</option>
+                        <option value="50" className="bg-zinc-800 text-zinc-200">50+</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-zinc-400 mb-1">Max Rating</label>
+                      <select
+                        value={filters.maxRating || ''}
+                        onChange={(e) => handleFilterChange('maxRating', e.target.value ? Number(e.target.value) : undefined)}
+                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 8px center',
+                          backgroundSize: '16px',
+                          paddingRight: '32px'
+                        }}
+                      >
+                        <option value="" className="bg-zinc-800 text-zinc-200">Any</option>
+                        <option value="95" className="bg-zinc-800 text-zinc-200">95 or less</option>
+                        <option value="90" className="bg-zinc-800 text-zinc-200">90 or less</option>
+                        <option value="85" className="bg-zinc-800 text-zinc-200">85 or less</option>
+                        <option value="80" className="bg-zinc-800 text-zinc-200">80 or less</option>
+                        <option value="75" className="bg-zinc-800 text-zinc-200">75 or less</option>
+                      </select>
+                    </div>
+                  </div>
+                  {(filters.minRating !== undefined || filters.maxRating !== undefined) && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => {
+                          setFilters(prev => ({
+                            ...prev,
+                            minRating: undefined,
+                            maxRating: undefined
+                          }))
+                        }}
+                        className="text-xs text-zinc-400 hover:text-zinc-300 underline"
+                      >
+                        Clear rating filters
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -507,28 +865,83 @@ export default function BrowsePage() {
             <div className="flex flex-wrap gap-2 items-center">
               <span className="text-sm text-zinc-400">Active filters:</span>
               {filters.searchQuery && (
-                <Badge variant="secondary" className="bg-zinc-800 text-zinc-300">
+                <Badge 
+                  variant="secondary" 
+                  className="bg-zinc-800 text-zinc-300 cursor-pointer hover:bg-zinc-700 flex items-center gap-1"
+                  onClick={() => {
+                    setSearchInput('')
+                    handleFilterChange('searchQuery', '')
+                  }}
+                >
                   Search: "{filters.searchQuery}"
+                  <span className="ml-1 text-xs">×</span>
                 </Badge>
               )}
               {filters.selectedGenres.map((genre) => (
-                <Badge key={genre} variant="secondary" className="bg-zinc-800 text-zinc-300">
+                <Badge 
+                  key={genre} 
+                  variant="secondary" 
+                  className="bg-purple-900 text-purple-300 cursor-pointer hover:bg-purple-800 flex items-center gap-1"
+                  onClick={() => handleGenreToggle(genre)}
+                >
                   {genre}
+                  <span className="ml-1 text-xs">×</span>
                 </Badge>
               ))}
+              {filters.selectedPlatforms.map((platformId) => {
+                const platformNames: { [key: number]: string } = {
+                  6: 'PC', 167: 'PS5', 48: 'PS4', 169: 'Xbox Series', 
+                  49: 'Xbox One', 130: 'Switch', 3: 'Linux', 14: 'Mac'
+                }
+                return (
+                  <Badge 
+                    key={platformId} 
+                    variant="secondary" 
+                    className="bg-emerald-900 text-emerald-300 cursor-pointer hover:bg-emerald-800 flex items-center gap-1"
+                    onClick={() => {
+                      const newPlatforms = filters.selectedPlatforms.filter(id => id !== platformId)
+                      handleFilterChange('selectedPlatforms', newPlatforms)
+                    }}
+                  >
+                    {platformNames[platformId] || `Platform ${platformId}`}
+                    <span className="ml-1 text-xs">×</span>
+                  </Badge>
+                )
+              })}
               {filters.sortBy !== 'popular' && (
-                <Badge variant="secondary" className="bg-zinc-800 text-zinc-300">
+                <Badge 
+                  variant="secondary" 
+                  className="bg-zinc-800 text-zinc-300 cursor-pointer hover:bg-zinc-700 flex items-center gap-1"
+                  onClick={() => handleFilterChange('sortBy', 'popular')}
+                >
                   Sort: {filters.sortBy.replace('_', ' ')}
+                  <span className="ml-1 text-xs">×</span>
                 </Badge>
               )}
-              {filters.yearRange !== 'all' && (
-                <Badge variant="secondary" className="bg-zinc-800 text-zinc-300">
-                  Year: {filters.yearRange}
+              {filters.selectedYear && (
+                <Badge 
+                  variant="secondary" 
+                  className="bg-amber-900 text-amber-300 cursor-pointer hover:bg-amber-800 flex items-center gap-1"
+                  onClick={() => handleFilterChange('selectedYear', undefined)}
+                >
+                  Year: {filters.selectedYear}
+                  <span className="ml-1 text-xs">×</span>
                 </Badge>
               )}
-              {filters.ratingRange !== 'all' && (
-                <Badge variant="secondary" className="bg-zinc-800 text-zinc-300">
-                  Rating: {filters.ratingRange}
+              {(filters.minRating !== undefined || filters.maxRating !== undefined) && (
+                <Badge 
+                  variant="secondary" 
+                  className="bg-rose-900 text-rose-300 cursor-pointer hover:bg-rose-800 flex items-center gap-1"
+                  onClick={() => {
+                    setFilters(prev => ({
+                      ...prev,
+                      minRating: undefined,
+                      maxRating: undefined
+                    }))
+                  }}
+                >
+                  Rating: {filters.minRating ? `${filters.minRating}+` : 'All'}
+                  <span className="ml-1 text-xs">×</span>
                 </Badge>
               )}
             </div>
@@ -591,48 +1004,60 @@ export default function BrowsePage() {
         ) : viewMode === 'grid' ? (
           <GameGrid 
             games={games}
-            onAddToList={(gameId: number) => console.log('Add to list:', gameId)}
-            onAddToLibrary={(gameId: number) => console.log('Like game:', gameId)}
-            onMoreInfo={(gameId: number) => console.log('More info:', gameId)}
+            onAddToLibrary={(gameId: number, status = 'backlog') => {
+              handleAddToLibrary(gameId, status)
+            }}
+            onMoreInfo={(gameId: number) => handleGameSelect(gameId)}
           />
         ) : (
           <div className="space-y-4">
             {games.map((game) => (
-              <div key={game.id} className="bg-zinc-900 rounded-lg p-4 flex gap-4 items-start">
-                <div className="w-20 h-28 bg-zinc-800 rounded flex-shrink-0">
+              <div 
+                key={game.id} 
+                className={`bg-zinc-900 rounded-lg p-4 flex gap-4 items-start cursor-pointer transition-all duration-200 hover:bg-zinc-800 hover:shadow-lg border ${
+                  selectedGameId === game.id 
+                    ? 'border-[#5d4af8] shadow-[0_0_20px_rgba(93,74,248,0.3)]' 
+                    : 'border-transparent hover:border-zinc-700'
+                }`}
+                onClick={() => handleGameSelect(game.id)}
+              >
+                <div className="w-20 h-28 bg-zinc-800 rounded flex-shrink-0 overflow-hidden">
                   {(game.cover?.url || game.cover_url) && (
                     <img
                       src={(game.cover?.url || game.cover_url || '').replace('t_thumb', 't_cover_small')}
                       alt={game.name}
-                      className="w-full h-full object-cover rounded"
+                      className="w-full h-full object-cover rounded transition-transform duration-200 hover:scale-105"
                     />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-white mb-2 truncate">
+                  <h3 className="text-lg font-semibold text-white mb-2 truncate hover:text-[#5d4af8] transition-colors">
                     {game.name}
                   </h3>
                   {game.genres && (
                     <div className="flex flex-wrap gap-1 mb-2">
                       {game.genres.slice(0, 3).map((genre, i) => (
-                        <Badge key={i} variant="secondary" className="bg-zinc-800 text-zinc-300 text-xs">
+                        <Badge key={i} variant="secondary" className="bg-zinc-800 text-zinc-300 text-xs hover:bg-zinc-700 transition-colors">
                           {genre.name}
                         </Badge>
                       ))}
                     </div>
                   )}
                   {game.summary && (
-                    <p className="text-zinc-400 text-sm line-clamp-2">
+                    <p className="text-zinc-400 text-sm line-clamp-2 mb-2">
                       {game.summary}
                     </p>
                   )}
-                  {game.rating && (
-                    <div className="mt-2">
+                  <div className="flex items-center justify-between">
+                    {game.rating && (
                       <Badge className="bg-yellow-600 text-white text-xs">
                         {Math.round(game.rating / 10)}/10
                       </Badge>
+                    )}
+                    <div className="text-xs text-zinc-500">
+                      Click to view details
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -657,6 +1082,26 @@ export default function BrowsePage() {
           </div>
         )}
       </div>
+
+      {/* Expanded Game Card Modal */}
+      {selectedGame && (
+        <ExpandedGameCard
+          game={selectedGame}
+          isOpen={showExpandedCard}
+          onClose={handleCloseExpandedCard}
+          onAddToLibrary={(status, hoursPlayed) => {
+            const safeStatus = status !== undefined ? status : 'backlog'
+            return handleAddToLibrary(selectedGame.id, safeStatus, hoursPlayed)
+          }}
+          onPlay={() => {
+            handleCloseExpandedCard()
+          }}
+        />
+      )}
+      
+      {/* Toast Container */}
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
+    </>
   )
 }

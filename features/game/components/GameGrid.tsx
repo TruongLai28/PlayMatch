@@ -23,8 +23,7 @@ interface Game {
 interface GameGridProps {
   games: Game[]
   title?: string
-  onAddToLibrary?: (gameId: number) => void
-  onAddToList?: (gameId: number) => void
+  onAddToLibrary?: (gameId: number, status?: 'backlog' | 'playing' | 'completed' | 'dropped') => void
   onMoreInfo?: (gameId: number) => void
 }
 
@@ -32,7 +31,6 @@ export function GameGrid({
   games, 
   title,
   onAddToLibrary,
-  onAddToList,
   onMoreInfo
 }: GameGridProps) {
   if (!games || games.length === 0) {
@@ -57,8 +55,7 @@ export function GameGrid({
           <GameCard 
             key={game.id}
             game={game}
-            onAddToLibrary={() => onAddToList?.(game.id)}
-            onAddToList={() => onAddToLibrary?.(game.id)}
+            onAddToLibrary={(status) => onAddToLibrary?.(game.id, status)}
             onMoreInfo={() => onMoreInfo?.(game.id)}
           />
         ))}

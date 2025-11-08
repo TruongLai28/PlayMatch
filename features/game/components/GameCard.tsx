@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { ExpandedGameCard } from './ExpandedGameCard'
+import { useLibrary } from '@/hooks/use-library'
 
 interface Game {
   id: number
@@ -23,8 +24,7 @@ interface Game {
 
 interface GameCardProps {
   game: Game
-  onAddToLibrary?: () => void
-  onAddToList?: () => void
+  onAddToLibrary?: (status: 'backlog' | 'playing' | 'completed' | 'dropped') => void
   onMoreInfo?: () => void
   isLastCard?: boolean
 }
@@ -32,12 +32,57 @@ interface GameCardProps {
 export function GameCard({ 
   game, 
   onAddToLibrary, 
-  onAddToList, 
   onMoreInfo,
   isLastCard = false
 }: GameCardProps) {
+  const { getGameStatus } = useLibrary()
   const cardRef = useRef<HTMLDivElement | null>(null)
   const [isExpanded, setIsExpanded] = useState(false)
+
+  // Get current library status for this game
+  const currentStatus = getGameStatus(game.id)
+
+  // Get button styling based on current status
+  const getButtonStyle = () => {
+    if (!currentStatus) {
+      return 'bg-[#5d4af8] hover:bg-[#5d4af8]/90'
+    }
+    switch (currentStatus) {
+      case 'backlog': return 'bg-blue-600 hover:bg-blue-700'
+      case 'playing': return 'bg-green-600 hover:bg-green-700'
+      case 'completed': return 'bg-purple-600 hover:bg-purple-700'
+      case 'dropped': return 'bg-red-600 hover:bg-red-700'
+      default: return 'bg-[#5d4af8] hover:bg-[#5d4af8]/90'
+    }
+  }
+
+  // Get button icon based on current status
+  const getButtonIcon = () => {
+    if (!currentStatus) {
+      return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+      </svg>
+    }
+    switch (currentStatus) {
+      case 'backlog': return 'B'
+      case 'playing': return 'P'
+      case 'completed': return '✓'
+      case 'dropped': return '✕'
+      default: return '+'
+    }
+  }
+
+  // Get button label for aria-label
+  const getButtonLabel = () => {
+    if (!currentStatus) return 'Add to library'
+    switch (currentStatus) {
+      case 'backlog': return 'In backlog'
+      case 'playing': return 'Currently playing'
+      case 'completed': return 'Completed'
+      case 'dropped': return 'Dropped'
+      default: return 'Add to library'
+    }
+  }
 
   const getCoverUrl = (url?: string) => {
     if (!url) {
@@ -73,6 +118,16 @@ export function GameCard({
           className="w-full h-[400px] object-cover"
         />
        
+        {/* Status Badge - Always visible when game is in library */}
+        {currentStatus && (
+          <div className="absolute top-2 right-2 z-10">
+            <div className={`${getButtonStyle()} text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg flex items-center gap-1`}>
+              <span className="text-sm">{getButtonIcon()}</span>
+              <span className="capitalize">{currentStatus}</span>
+            </div>
+          </div>
+        )}
+       
         {/* Gradient overlay on hover */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 pointer-events-none" />
         
@@ -83,26 +138,17 @@ export function GameCard({
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onAddToLibrary?.()
+                onAddToLibrary?.('backlog')
               }}
-              className="bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white rounded-full h-8 w-8 flex items-center justify-center transition-all duration-200"
-              aria-label="Add to list"
+              className={`${getButtonStyle()} text-white rounded-full h-8 w-8 flex items-center justify-center transition-all duration-200`}
+              aria-label={getButtonLabel()}
+              title={getButtonLabel()}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onAddToList?.()
-              }}
-              className="bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white rounded-full h-8 w-8 flex items-center justify-center transition-all duration-200"
-              aria-label="Like"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
+              {typeof getButtonIcon() === 'string' ? (
+                <span className="text-sm">{getButtonIcon()}</span>
+              ) : (
+                getButtonIcon()
+              )}
             </button>
           </div>
 
@@ -166,8 +212,7 @@ export function GameCard({
       game={game}
       isOpen={isExpanded}
       onClose={() => setIsExpanded(false)}
-      onAddToLibriary={onAddToLibrary}
-      onAddToList={onAddToList}
+      onAddToLibrary={onAddToLibrary}
       onPlay={() => {
         setIsExpanded(false)
         onMoreInfo?.()

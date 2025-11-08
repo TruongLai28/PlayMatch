@@ -35,9 +35,15 @@ interface Game {
 }
 
 interface RecommendationResponse {
-  seed: Game
-  dbScored: Game[]
-  igdbPool: Game[]
+  message: string
+  count: number
+  query: string
+  debug: {
+    total: string
+    with_embeddings: string
+    filters_applied: number
+  }
+  recommendations: Game[]
 }
 
 export default function RecommendationsPage() {
@@ -50,13 +56,11 @@ export default function RecommendationsPage() {
   const [searchInput, setSearchInput] = useState<string>('')
   const [selectedGames, setSelectedGames] = useState<Game[]>([])
   const [selectedGenres, setSelectedGenres] = useState<string[]>([])
-  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([])
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([])
   const [selectedThemes, setSelectedThemes] = useState<string[]>([])
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
   
   // Dropdown visibility states
-  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false)
   const [showKeywordDropdown, setShowKeywordDropdown] = useState(false)
   const [showThemeDropdown, setShowThemeDropdown] = useState(false)
   const [showPlatformDropdown, setShowPlatformDropdown] = useState(false)
@@ -66,19 +70,13 @@ export default function RecommendationsPage() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1)
+  const [showResultsModal, setShowResultsModal] = useState(false)
 
   const genres = [
     'Point-and-click', 'Fighting', 'Shooter', 'Music', 'Platform', 'Puzzle', 'Racing', 
     'Real Time Strategy (RTS)', 'Role-playing (RPG)', 'Simulator', 'Sport', 'Strategy', 
     'Turn-based Strategy (TBS)', 'Tactical', 'Hack & slash/Beat \'em up', 'Quiz/Trivia', 
     'Pinball', 'Adventure', 'Indie', 'Arcade', 'Visual Novel', 'Card & Board Game', 'MOBA'
-  ]
-
-  const companies = [
-    'Nintendo', 'Sony Interactive Entertainment', 'Microsoft Game Studios', 'Electronic Arts', 'Activision Blizzard',
-    'Ubisoft', 'Take-Two Interactive', 'Square Enix', 'Capcom', 'Bandai Namco Entertainment',
-    'Sega', 'Konami', 'Bethesda Softworks', 'CD Projekt', 'Valve Corporation',
-    'Epic Games', 'Rockstar Games', 'Blizzard Entertainment', 'FromSoftware', 'Naughty Dog'
   ]
 
   const keywords = [
@@ -103,7 +101,6 @@ export default function RecommendationsPage() {
 
   const maxGames = 5
   const maxGenres = 6
-  const maxCompanies = 4
   const maxKeywords = 6
   const maxThemes = 4
   const maxPlatforms = 4
@@ -230,17 +227,6 @@ export default function RecommendationsPage() {
     })
   }
 
-  const handleCompanyToggle = (company: string) => {
-    setSelectedCompanies(prev => {
-      if (prev.includes(company)) {
-        return prev.filter(c => c !== company)
-      } else if (prev.length < maxCompanies) {
-        return [...prev, company]
-      }
-      return prev
-    })
-  }
-
   const handleKeywordToggle = (keyword: string) => {
     setSelectedKeywords(prev => {
       if (prev.includes(keyword)) {
@@ -336,46 +322,25 @@ export default function RecommendationsPage() {
       setLoading(true)
       setError(null)
       
-      let url = '/api/rec-engine?'
-      const params = new URLSearchParams()
-      
-      // Use the first selected game as seed (current API structure)
-      if (selectedGames.length > 0) {
-        const seedGameId = selectedGames[0].id
-        params.append('seedGameId', seedGameId.toString())
-        console.log('Getting recommendations for seed game:', selectedGames[0].name, 'ID:', seedGameId)
+      // Prepare data for vector-search API
+      const requestBody = {
+        gameIds: selectedGames.map(game => game.id),
+        genres: selectedGenres,
+        themes: selectedThemes,
+        keywords: selectedKeywords,
+        platforms: selectedPlatforms,
+        limit: 20,
+        minRating: 70
       }
       
-      // Add selected criteria as preferences (future API enhancement)
-      if (selectedGenres.length > 0) {
-        params.append('preferredGenres', selectedGenres.join(','))
-        console.log('Preferred genres:', selectedGenres)
-      }
-      if (selectedCompanies.length > 0) {
-        params.append('preferredCompanies', selectedCompanies.join(','))
-        console.log('Preferred companies:', selectedCompanies)
-      }
-      if (selectedKeywords.length > 0) {
-        params.append('preferredKeywords', selectedKeywords.join(','))
-        console.log('Preferred keywords:', selectedKeywords)
-      }
-      if (selectedThemes.length > 0) {
-        params.append('preferredThemes', selectedThemes.join(','))
-        console.log('Preferred themes:', selectedThemes)
-      }
-      if (selectedPlatforms.length > 0) {
-        params.append('preferredPlatforms', selectedPlatforms.join(','))
-        console.log('Preferred platforms:', selectedPlatforms)
-      }
+      console.log('Getting vector-based recommendations with:', requestBody)
       
-      // Note: The current rec engine analyzes all criteria of the seed game,
-      // but these preferences could be used for weighting or filtering later
-      
-      url += params.toString()
-      console.log('Recommendation API URL:', url)
-      
-      const response = await fetch(url, {
-        method: 'POST'
+      const response = await fetch('/api/db/ai-recommend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
       })
       
       console.log('Response status:', response.status)
@@ -387,42 +352,28 @@ export default function RecommendationsPage() {
       }
       
       const data: RecommendationResponse = await response.json()
-      console.log('Recommendations received:', {
-        seedGame: data.seed?.name,
-        dbScoredCount: data.dbScored?.length || 0,
-        igdbPoolCount: data.igdbPool?.length || 0
+      console.log('Vector search recommendations received:', {
+        query: data.query,
+        count: data.count,
+        message: data.message,
+        debug: data.debug
       })
       
-      // Log scoring details for top matches
-      if (data.dbScored && data.dbScored.length > 0) {
-        console.log('Top 3 scoring details:')
-        data.dbScored.slice(0, 3).forEach((game: any, idx: number) => {
-          console.log(`${idx + 1}. ${game.name} (Score: ${game.finalScore?.toFixed(3) || 'N/A'})`)
-          if (game.genreScore !== undefined) {
-            console.log(`   - Genre: ${(game.genreScore * 100).toFixed(1)}%`)
-            console.log(`   - Company: ${(game.companyScore * 100).toFixed(1)}%`)
-            console.log(`   - Keywords: ${(game.keywordScore * 100).toFixed(1)}%`)
-            console.log(`   - Themes: ${(game.themeScore * 100).toFixed(1)}%`)
-            console.log(`   - Rating: ${(game.ratingScoreValue * 100).toFixed(1)}%`)
-            console.log(`   - Platform: ${(game.platformScore * 100).toFixed(1)}%`)
+      // Log similarity scores for top matches
+      if (data.recommendations && data.recommendations.length > 0) {
+        console.log('Top 3 vector similarity matches:')
+        data.recommendations.slice(0, 3).forEach((game: any, idx: number) => {
+          console.log(`${idx + 1}. ${game.name} (Similarity: ${game.similarity_score || 'N/A'})`)
+          if (game.rating) {
+            console.log(`   - Rating: ${game.rating}/100`)
           }
         })
       }
       
-      // Fix cover URLs for database games if needed
+      // Fix cover URLs for recommendations
       const processedData = {
         ...data,
-        dbScored: data.dbScored?.map(game => {
-          const gameAny = game as any
-          return {
-            ...game,
-            cover: game.cover?.url ? game.cover : 
-                   gameAny.cover_url ? { url: gameAny.cover_url } :
-                   gameAny.coverUrl ? { url: gameAny.coverUrl } :
-                   undefined
-          }
-        }) || [],
-        igdbPool: data.igdbPool?.map(game => {
+        recommendations: data.recommendations?.map(game => {
           const gameAny = game as any
           return {
             ...game,
@@ -435,6 +386,7 @@ export default function RecommendationsPage() {
       }
       
       setRecommendations(processedData)
+      setShowResultsModal(true)
     } catch (err) {
       console.error('Recommendation error:', err)
       setError(err instanceof Error ? err.message : 'Failed to get recommendations')
@@ -460,7 +412,6 @@ export default function RecommendationsPage() {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element
       if (!target.closest('.dropdown-container')) {
-        setShowCompanyDropdown(false)
         setShowKeywordDropdown(false)
         setShowThemeDropdown(false)
         setShowPlatformDropdown(false)
@@ -477,7 +428,7 @@ export default function RecommendationsPage() {
     }
   }, [])
 
-  const allGames = recommendations ? [...recommendations.dbScored, ...recommendations.igdbPool] : []
+  const allGames = recommendations ? recommendations.recommendations : []
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
@@ -581,46 +532,169 @@ export default function RecommendationsPage() {
       <div className="max-w-7xl mx-auto px-6 py-16 relative z-10">
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <Sparkles className="h-8 w-8 text-[#5d4af8]" />
-            <h1 className="text-2xl font-semibold text-white">Game Recommender</h1>
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-r from-[#5d4af8] to-purple-500 rounded-full flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
+              AI Game Discovery
+            </h1>
           </div>
-          <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
-            Analyzes genre, company, keywords, themes, ratings, and platforms. 
+          <p className="text-zinc-300 text-xl mb-4 max-w-3xl mx-auto">
+            Powered by advanced machine learning and vector similarity search
+          </p>
+          <p className="text-zinc-500 text-base max-w-2xl mx-auto">
+            Our AI analyzes gameplay patterns, themes, player sentiment, and semantic relationships to find games that truly match your preferences.
           </p>
         </div>
 
-        {/* Search and Genre Selection Container */}
-        <div className="bg-zinc-900/50 rounded-2xl border border-[#5d4af8]/30 p-8 mb-12 shadow-[0_0_20px_rgba(93,74,248,0.3)] hover:shadow-[0_0_30px_rgba(93,74,248,0.4)] transition-shadow duration-300">
+        {/* Interactive Preference Wizard */}
+        <div className="space-y-8 mb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Step 1: Games Card */}
+            <div className="bg-gradient-to-br from-blue-900/20 to-blue-800/20 rounded-2xl border border-blue-500/30 p-6 hover:border-blue-400/50 transition-all duration-300 group">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg font-bold">1</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Add Games You Love</h3>
+                  <p className="text-blue-300 text-sm">Tell us what you enjoy playing</p>
+                </div>
+              </div>
+              <div className="mb-4">
+                {selectedGames.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {selectedGames.map((game) => (
+                        <div key={game.id} className="relative group">
+                          <div className="w-12 h-16 bg-zinc-700 rounded border-2 border-blue-400/30 overflow-hidden group-hover:border-blue-400/60 transition-colors">
+                            {game.cover?.url ? (
+                              <img
+                                src={game.cover.url}
+                                alt={game.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-blue-400 text-xs">
+                                No Image
+                              </div>
+                            )}
+                          </div>
+                          {/* Delete Button */}
+                          <button
+                            onClick={() => removeGame(game.id)}
+                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                            title={`Remove ${game.name}`}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-center">
+                      <p className="text-blue-200 text-sm">{selectedGames.length}/{maxGames} games selected</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 border-2 border-dashed border-blue-500/30 rounded-lg group-hover:border-blue-400/50 transition-colors">
+                    <div className="text-blue-400 text-2xl mb-2">+</div>
+                    <p className="text-blue-200 text-sm">No games selected yet</p>
+                    <p className="text-blue-300 text-xs mt-1">Search for games below</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Step 2: Preferences Card */}
+            <div className="bg-gradient-to-br from-purple-900/20 to-purple-800/20 rounded-2xl border border-purple-500/30 p-6 hover:border-purple-400/50 transition-all duration-300 group">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg font-bold">2</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Set Preferences</h3>
+                  <p className="text-purple-300 text-sm">Customize your recommendations</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-purple-200 text-sm">Genres</span>
+                  <span className="text-purple-300 text-xs">{selectedGenres.length}/{maxGenres}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-purple-200 text-sm">Keywords</span>
+                  <span className="text-purple-300 text-xs">{selectedKeywords.length}/{maxKeywords}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-purple-200 text-sm">Themes</span>
+                  <span className="text-purple-300 text-xs">{selectedThemes.length}/{maxThemes}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-purple-200 text-sm">Platforms</span>
+                  <span className="text-purple-300 text-xs">{selectedPlatforms.length}/{maxPlatforms}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3: Discovery Card */}
+            <div className="bg-gradient-to-br from-emerald-900/20 to-emerald-800/20 rounded-2xl border border-emerald-500/30 p-6 hover:border-emerald-400/50 transition-all duration-300 group">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg font-bold">3</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Discover Games</h3>
+                  <p className="text-emerald-300 text-sm">Get AI-powered recommendations</p>
+                </div>
+              </div>
+              <div className="text-center py-6">
+                <div className="text-emerald-400 text-3xl mb-2">*</div>
+                {recommendations ? (
+                  <Button
+                    onClick={() => setShowResultsModal(true)}
+                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-6 py-2 rounded-lg w-full mb-2"
+                  >
+                    View Results! ({allGames.length} games)
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={getRecommendations}
+                    disabled={loading || selectedGames.length === 0}
+                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-6 py-2 rounded-lg w-full"
+                  >
+                    {loading ? 'Analyzing...' : 'Find Games!'}
+                  </Button>
+                )}
+                {recommendations && (
+                  <Button
+                    onClick={() => {
+                      setRecommendations(null)
+                      setShowResultsModal(false)
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs text-zinc-400 border-zinc-600 hover:bg-zinc-800 mt-2"
+                  >
+                    Start New Search
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Indicator & Action */}
+          <div className="space-y-6">
+            {/* Game Search Section - Always visible but compact */}
+            <div className="bg-gradient-to-br from-zinc-900/70 to-zinc-800/70 rounded-2xl border border-[#5d4af8]/40 p-6">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold text-white mb-2">Search for Games</h3>
+                <p className="text-zinc-400 text-sm">Find games you love to get better recommendations</p>
+              </div>
+              
           {/* Search Section */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-medium text-white">Add Games ({selectedGames.length}/{maxGames})</h2>
-              {(selectedGames.length > 0 || selectedGenres.length > 0 || selectedCompanies.length > 0 || 
-                selectedKeywords.length > 0 || selectedThemes.length > 0 || selectedPlatforms.length > 0) && (
-                <Button
-                  onClick={() => {
-                    setSelectedGames([])
-                    setSelectedGenres([])
-                    setSelectedCompanies([])
-                    setSelectedKeywords([])
-                    setSelectedThemes([])
-                    setSelectedPlatforms([])
-                    // Close all dropdowns
-                    setShowCompanyDropdown(false)
-                    setShowKeywordDropdown(false)
-                    setShowThemeDropdown(false)
-                    setShowPlatformDropdown(false)
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="text-zinc-400 border-zinc-700 hover:bg-zinc-800"
-                >
-                  Clear All Selections
-                </Button>
-              )}
-            </div>
-            
             <div className="relative max-w-2xl mx-auto search-container">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-zinc-400 h-5 w-5 z-10" />
               <Input
@@ -640,7 +714,7 @@ export default function RecommendationsPage() {
                   }
                 }}
                 disabled={selectedGames.length >= maxGames}
-                className="pl-12 pr-4 py-4 text-lg bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-400 rounded-xl focus:ring-2 focus:ring-[#5d4af8] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed relative z-10"
+                className="pl-12 pr-4 py-3 text-lg bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-400 rounded-xl focus:ring-2 focus:ring-[#5d4af8] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed relative z-10"
               />
               
               {/* Loading indicator */}
@@ -719,7 +793,7 @@ export default function RecommendationsPage() {
                   {selectedGames.map((game) => (
                     <div
                       key={game.id}
-                      className="flex items-center gap-2 bg-zinc-800 rounded-full px-4 py-2 border border-zinc-700"
+                      className="flex items-center gap-2 bg-zinc-800 rounded-full px-4 py-2 border border-zinc-700 hover:border-zinc-600 transition-colors"
                     >
                       {game.cover?.url && (
                         <img
@@ -744,315 +818,269 @@ export default function RecommendationsPage() {
             )}
           </div>
 
-          {/* Selection Tabs */}
-          <div className="space-y-8">
+          {/* Collapsible Preference Sections */}
+          <div className="space-y-4">
             {/* Genre Selection */}
-            <div>
-              <h2 className="text-xl font-medium text-white mb-6 text-center">
-                Select Genres ({selectedGenres.length}/{maxGenres})
-              </h2>
-              <div className="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
-                {genres.map((genre) => {
-                  const isSelected = selectedGenres.includes(genre)
-                  const isDisabled = !isSelected && selectedGenres.length >= maxGenres
-                  
-                  return (
-                    <Button
-                      key={genre}
-                      variant={isSelected ? "default" : "outline"}
-                      onClick={() => handleGenreToggle(genre)}
-                      disabled={isDisabled}
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                        isSelected
-                          ? "bg-[#5d4af8] text-white hover:bg-[#5d4af8]/80"
-                          : isDisabled
-                          ? "bg-zinc-800 text-zinc-500 border-zinc-700 opacity-50 cursor-not-allowed"
-                          : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700"
-                      }`}
-                    >
-                      {genre}
-                    </Button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Company Selection - Dropdown */}
-            <div className="relative dropdown-container">
-              <h2 className="text-xl font-medium text-white mb-4 text-center">
-                Select Companies ({selectedCompanies.length}/{maxCompanies})
-              </h2>
-              
-              {/* Selected Companies Display */}
-              {selectedCompanies.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2 mb-4">
-                  {selectedCompanies.map((company) => (
-                    <div
-                      key={company}
-                      className="flex items-center gap-2 bg-emerald-600 text-white rounded-full px-3 py-1 text-sm"
-                    >
-                      <span>{company}</span>
-                      <button
-                        onClick={() => handleCompanyToggle(company)}
-                        className="hover:bg-emerald-700 rounded-full p-0.5"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* Dropdown Button */}
-              <div className="flex justify-center">
-                <Button
-                  onClick={() => setShowCompanyDropdown(!showCompanyDropdown)}
-                  variant="outline"
-                  disabled={selectedCompanies.length >= maxCompanies}
-                  className="bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 px-6 py-2"
-                >
-                  Add Company
-                  <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showCompanyDropdown ? 'rotate-180' : ''}`} />
-                </Button>
-              </div>
-              
-              {/* Dropdown Menu */}
-              {showCompanyDropdown && (
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-80 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
-                  <div className="p-2 space-y-1">
-                    {companies
-                      .filter(company => !selectedCompanies.includes(company))
-                      .map((company) => (
-                        <button
-                          key={company}
-                          onClick={() => {
-                            handleCompanyToggle(company)
-                            if (selectedCompanies.length + 1 >= maxCompanies) {
-                              setShowCompanyDropdown(false)
-                            }
-                          }}
-                          className="w-full text-left px-3 py-2 text-zinc-300 hover:bg-zinc-700 rounded transition-colors"
-                        >
-                          {company}
-                        </button>
-                      ))}
+            <details className="group bg-zinc-900/50 rounded-xl border border-zinc-700 overflow-hidden">
+              <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">G</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">Genres</h3>
+                    <p className="text-zinc-400 text-sm">What types of games do you enjoy?</p>
                   </div>
                 </div>
-              )}
-            </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-purple-500/10 text-purple-300 border-purple-500/30">
+                    {selectedGenres.length}/{maxGenres}
+                  </Badge>
+                  <div className="text-zinc-400 group-open:rotate-180 transition-transform">
+                    <ChevronDown className="h-5 w-5" />
+                  </div>
+                </div>
+              </summary>
+              <div className="p-4 pt-0">
+                <div className="flex flex-wrap gap-2 max-w-4xl mx-auto">
+                  {genres.map((genre) => {
+                    const isSelected = selectedGenres.includes(genre)
+                    const isDisabled = !isSelected && selectedGenres.length >= maxGenres
+                    
+                    return (
+                      <Button
+                        key={genre}
+                        variant={isSelected ? "default" : "outline"}
+                        onClick={() => handleGenreToggle(genre)}
+                        disabled={isDisabled}
+                        size="sm"
+                        className={`rounded-full transition-all duration-200 ${
+                          isSelected
+                            ? "bg-purple-500 text-white hover:bg-purple-600 border-purple-500"
+                            : isDisabled
+                            ? "bg-zinc-800 text-zinc-500 border-zinc-700 opacity-50 cursor-not-allowed"
+                            : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 hover:text-white"
+                        }`}
+                      >
+                        {genre}
+                      </Button>
+                    )
+                  })}
+                </div>
+              </div>
+            </details>
 
-            {/* Keywords Selection - Dropdown */}
-            <div className="relative dropdown-container">
-              <h2 className="text-xl font-medium text-white mb-4 text-center">
-                Select Keywords ({selectedKeywords.length}/{maxKeywords})
-              </h2>
-              
-              {/* Selected Keywords Display */}
-              {selectedKeywords.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2 mb-4">
-                  {selectedKeywords.map((keyword) => (
-                    <div
-                      key={keyword}
-                      className="flex items-center gap-2 bg-amber-600 text-white rounded-full px-3 py-1 text-sm"
-                    >
-                      <span>{keyword}</span>
-                      <button
+            {/* Keywords Section */}
+            <details className="group bg-zinc-900/50 rounded-xl border border-zinc-700 overflow-hidden">
+              <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">K</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">Keywords</h3>
+                    <p className="text-zinc-400 text-sm">Specific features you're looking for</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-amber-500/10 text-amber-300 border-amber-500/30">
+                    {selectedKeywords.length}/{maxKeywords}
+                  </Badge>
+                  <div className="text-zinc-400 group-open:rotate-180 transition-transform">
+                    <ChevronDown className="h-5 w-5" />
+                  </div>
+                </div>
+              </summary>
+              <div className="p-4 pt-0">
+                <div className="flex flex-wrap gap-2 max-w-4xl mx-auto">
+                  {keywords.map((keyword) => {
+                    const isSelected = selectedKeywords.includes(keyword)
+                    const isDisabled = !isSelected && selectedKeywords.length >= maxKeywords
+                    
+                    return (
+                      <Button
+                        key={keyword}
+                        variant={isSelected ? "default" : "outline"}
                         onClick={() => handleKeywordToggle(keyword)}
-                        className="hover:bg-amber-700 rounded-full p-0.5"
+                        disabled={isDisabled}
+                        size="sm"
+                        className={`rounded-full transition-all duration-200 ${
+                          isSelected
+                            ? "bg-amber-500 text-white hover:bg-amber-600 border-amber-500"
+                            : isDisabled
+                            ? "bg-zinc-800 text-zinc-500 border-zinc-700 opacity-50 cursor-not-allowed"
+                            : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 hover:text-white"
+                        }`}
                       >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
+                        {keyword}
+                      </Button>
+                    )
+                  })}
                 </div>
-              )}
-              
-              {/* Dropdown Button */}
-              <div className="flex justify-center">
-                <Button
-                  onClick={() => setShowKeywordDropdown(!showKeywordDropdown)}
-                  variant="outline"
-                  disabled={selectedKeywords.length >= maxKeywords}
-                  className="bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 px-6 py-2"
-                >
-                  Add Keyword
-                  <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showKeywordDropdown ? 'rotate-180' : ''}`} />
-                </Button>
               </div>
-              
-              {/* Dropdown Menu */}
-              {showKeywordDropdown && (
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-80 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
-                  <div className="p-2 space-y-1">
-                    {keywords
-                      .filter(keyword => !selectedKeywords.includes(keyword))
-                      .map((keyword) => (
-                        <button
-                          key={keyword}
-                          onClick={() => {
-                            handleKeywordToggle(keyword)
-                            if (selectedKeywords.length + 1 >= maxKeywords) {
-                              setShowKeywordDropdown(false)
-                            }
-                          }}
-                          className="w-full text-left px-3 py-2 text-zinc-300 hover:bg-zinc-700 rounded transition-colors"
-                        >
-                          {keyword}
-                        </button>
-                      ))}
+            </details>
+
+            {/* Themes Section */}
+            <details className="group bg-zinc-900/50 rounded-xl border border-zinc-700 overflow-hidden">
+              <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-rose-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">T</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">Themes</h3>
+                    <p className="text-zinc-400 text-sm">What moods and settings appeal to you?</p>
                   </div>
                 </div>
-              )}
-            </div>
-
-            {/* Themes Selection - Dropdown */}
-            <div className="relative dropdown-container">
-              <h2 className="text-xl font-medium text-white mb-4 text-center">
-                Select Themes ({selectedThemes.length}/{maxThemes})
-              </h2>
-              
-              {/* Selected Themes Display */}
-              {selectedThemes.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2 mb-4">
-                  {selectedThemes.map((theme) => (
-                    <div
-                      key={theme}
-                      className="flex items-center gap-2 bg-rose-600 text-white rounded-full px-3 py-1 text-sm"
-                    >
-                      <span>{theme}</span>
-                      <button
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-rose-500/10 text-rose-300 border-rose-500/30">
+                    {selectedThemes.length}/{maxThemes}
+                  </Badge>
+                  <div className="text-zinc-400 group-open:rotate-180 transition-transform">
+                    <ChevronDown className="h-5 w-5" />
+                  </div>
+                </div>
+              </summary>
+              <div className="p-4 pt-0">
+                <div className="flex flex-wrap gap-2 max-w-4xl mx-auto">
+                  {themes.map((theme) => {
+                    const isSelected = selectedThemes.includes(theme)
+                    const isDisabled = !isSelected && selectedThemes.length >= maxThemes
+                    
+                    return (
+                      <Button
+                        key={theme}
+                        variant={isSelected ? "default" : "outline"}
                         onClick={() => handleThemeToggle(theme)}
-                        className="hover:bg-rose-700 rounded-full p-0.5"
+                        disabled={isDisabled}
+                        size="sm"
+                        className={`rounded-full transition-all duration-200 ${
+                          isSelected
+                            ? "bg-rose-500 text-white hover:bg-rose-600 border-rose-500"
+                            : isDisabled
+                            ? "bg-zinc-800 text-zinc-500 border-zinc-700 opacity-50 cursor-not-allowed"
+                            : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 hover:text-white"
+                        }`}
                       >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
+                        {theme}
+                      </Button>
+                    )
+                  })}
                 </div>
-              )}
-              
-              {/* Dropdown Button */}
-              <div className="flex justify-center">
-                <Button
-                  onClick={() => setShowThemeDropdown(!showThemeDropdown)}
-                  variant="outline"
-                  disabled={selectedThemes.length >= maxThemes}
-                  className="bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 px-6 py-2"
-                >
-                  Add Theme
-                  <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showThemeDropdown ? 'rotate-180' : ''}`} />
-                </Button>
               </div>
-              
-              {/* Dropdown Menu */}
-              {showThemeDropdown && (
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-80 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
-                  <div className="p-2 space-y-1">
-                    {themes
-                      .filter(theme => !selectedThemes.includes(theme))
-                      .map((theme) => (
-                        <button
-                          key={theme}
-                          onClick={() => {
-                            handleThemeToggle(theme)
-                            if (selectedThemes.length + 1 >= maxThemes) {
-                              setShowThemeDropdown(false)
-                            }
-                          }}
-                          className="w-full text-left px-3 py-2 text-zinc-300 hover:bg-zinc-700 rounded transition-colors"
-                        >
-                          {theme}
-                        </button>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            </details>
 
-            {/* Platforms Selection - Dropdown */}
-            <div className="relative dropdown-container">
-              <h2 className="text-xl font-medium text-white mb-4 text-center">
-                Select Platforms ({selectedPlatforms.length}/{maxPlatforms})
-              </h2>
-              
-              {/* Selected Platforms Display */}
-              {selectedPlatforms.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2 mb-4">
-                  {selectedPlatforms.map((platform) => (
-                    <div
-                      key={platform}
-                      className="flex items-center gap-2 bg-blue-600 text-white rounded-full px-3 py-1 text-sm"
-                    >
-                      <span>{platform}</span>
-                      <button
-                        onClick={() => handlePlatformToggle(platform)}
-                        className="hover:bg-blue-700 rounded-full p-0.5"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* Dropdown Button */}
-              <div className="flex justify-center">
-                <Button
-                  onClick={() => setShowPlatformDropdown(!showPlatformDropdown)}
-                  variant="outline"
-                  disabled={selectedPlatforms.length >= maxPlatforms}
-                  className="bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 px-6 py-2"
-                >
-                  Add Platform
-                  <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showPlatformDropdown ? 'rotate-180' : ''}`} />
-                </Button>
-              </div>
-              
-              {/* Dropdown Menu */}
-              {showPlatformDropdown && (
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-80 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
-                  <div className="p-2 space-y-1">
-                    {platforms
-                      .filter(platform => !selectedPlatforms.includes(platform))
-                      .map((platform) => (
-                        <button
-                          key={platform}
-                          onClick={() => {
-                            handlePlatformToggle(platform)
-                            if (selectedPlatforms.length + 1 >= maxPlatforms) {
-                              setShowPlatformDropdown(false)
-                            }
-                          }}
-                          className="w-full text-left px-3 py-2 text-zinc-300 hover:bg-zinc-700 rounded transition-colors"
-                        >
-                          {platform}
-                        </button>
-                      ))}
+            {/* Platforms Section */}
+            <details className="group bg-zinc-900/50 rounded-xl border border-zinc-700 overflow-hidden">
+              <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">P</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">Platforms</h3>
+                    <p className="text-zinc-400 text-sm">Which platforms do you game on?</p>
                   </div>
                 </div>
-              )}
-            </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-indigo-500/10 text-indigo-300 border-indigo-500/30">
+                    {selectedPlatforms.length}/{maxPlatforms}
+                  </Badge>
+                  <div className="text-zinc-400 group-open:rotate-180 transition-transform">
+                    <ChevronDown className="h-5 w-5" />
+                  </div>
+                </div>
+              </summary>
+              <div className="p-4 pt-0">
+                <div className="flex flex-wrap gap-2 max-w-4xl mx-auto">
+                  {platforms.map((platform) => {
+                    const isSelected = selectedPlatforms.includes(platform)
+                    const isDisabled = !isSelected && selectedPlatforms.length >= maxPlatforms
+                    
+                    return (
+                      <Button
+                        key={platform}
+                        variant={isSelected ? "default" : "outline"}
+                        onClick={() => handlePlatformToggle(platform)}
+                        disabled={isDisabled}
+                        size="sm"
+                        className={`rounded-full transition-all duration-200 ${
+                          isSelected
+                            ? "bg-indigo-500 text-white hover:bg-indigo-600 border-indigo-500"
+                            : isDisabled
+                            ? "bg-zinc-800 text-zinc-500 border-zinc-700 opacity-50 cursor-not-allowed"
+                            : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 hover:text-white"
+                        }`}
+                      >
+                        {platform}
+                      </Button>
+                    )
+                  })}
+                </div>
+              </div>
+            </details>
           </div>
         </div>
+        </div>
 
-        {/* Get Recommendations Button */}
-        <div className="text-center mb-16">
-          <Button
-            onClick={getRecommendations}
-            disabled={loading || selectedGames.length === 0}
-            className="bg-[#5d4af8] hover:bg-[#5d4af8]/80 text-white px-12 py-4 text-lg rounded-xl font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Sparkles className="h-5 w-5 mr-2" />
-            {loading ? 'Getting Recommendations...' : 'Get Recommendations'}
-          </Button>
-          
-          {selectedGames.length === 0 && (
-            <p className="text-zinc-500 text-sm mt-2">
-              Select at least one game to get recommendations
-            </p>
+
+        {/* Progress Indicator & Action */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <div className="flex items-center">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedGames.length > 0 ? 'bg-green-500' : 'bg-zinc-700'}`}>
+                <span className="text-white text-sm font-bold">✓</span>
+              </div>
+              <div className="w-16 h-1 bg-zinc-700 mx-2"></div>
+            </div>
+            <div className="flex items-center">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${(selectedGenres.length > 0 || selectedKeywords.length > 0 || selectedThemes.length > 0 || selectedPlatforms.length > 0) ? 'bg-green-500' : 'bg-zinc-700'}`}>
+                <span className="text-white text-sm font-bold">✓</span>
+              </div>
+              <div className="w-16 h-1 bg-zinc-700 mx-2"></div>
+            </div>
+            <div className="flex items-center">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${recommendations ? 'bg-green-500' : 'bg-[#5d4af8]'}`}>
+                <Sparkles className="h-4 w-4 text-white" />
+              </div>
+            </div>
+          </div>
+
+          {/* Clear All Button */}
+          {(selectedGames.length > 0 || selectedGenres.length > 0 || 
+            selectedKeywords.length > 0 || selectedThemes.length > 0 || selectedPlatforms.length > 0) && (
+            <Button
+              onClick={() => {
+                setSelectedGames([])
+                setSelectedGenres([])
+                setSelectedKeywords([])
+                setSelectedThemes([])
+                setSelectedPlatforms([])
+                setShowKeywordDropdown(false)
+                setShowThemeDropdown(false)
+                setShowPlatformDropdown(false)
+              }}
+              variant="outline"
+              size="sm"
+              className="text-zinc-400 border-zinc-700 hover:bg-zinc-800 mb-4"
+            >
+              Clear All Selections
+            </Button>
           )}
           
-
+          {selectedGames.length === 0 && !loading && (
+            <div className="p-6 bg-amber-900/10 border border-amber-500/20 rounded-xl inline-block max-w-md">
+              <div className="flex items-center gap-3 text-amber-300">
+                <div className="w-8 h-8 bg-amber-500/20 rounded-full flex items-center justify-center">
+                  <span className="text-amber-400 text-lg">!</span>
+                </div>
+                <div>
+                  <p className="font-medium">Ready to discover new games?</p>
+                  <p className="text-sm text-amber-400 mt-1">Start by adding games you love above!</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
 
@@ -1072,146 +1100,125 @@ export default function RecommendationsPage() {
           </div>
         )}
 
-        {/* Results */}
-        {recommendations && allGames.length > 0 && (
-          <div className="mt-16">
-            {/* Seed Game Info */}
-            <div className="bg-zinc-900/50 rounded-2xl border border-[#5d4af8]/30 p-6 mb-12 shadow-[0_0_20px_rgba(93,74,248,0.3)]">
-              <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-                Recommendations based on "{recommendations.seed.name}"
-              </h2>
-              
-              {/* Seed Game Details */}
-              <div className="flex items-center justify-center gap-6 mb-6">
-                {recommendations.seed.cover?.url && (
-                  <img
-                    src={recommendations.seed.cover.url}
-                    alt={recommendations.seed.name}
-                    className="w-20 h-28 rounded-lg object-cover"
-                  />
-                )}
-                <div className="text-center">
-                  <h3 className="text-xl font-bold text-white mb-2">{recommendations.seed.name}</h3>
-                  {recommendations.seed.rating && (
-                    <div className="text-[#5d4af8] font-semibold mb-2">
-                      Rating: {Math.round(recommendations.seed.rating)}/100
+        {/* Results Modal */}
+        {showResultsModal && recommendations && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div className="bg-zinc-900 rounded-2xl border border-zinc-700 shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-zinc-700 bg-gradient-to-r from-[#5d4af8]/10 to-purple-500/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-[#5d4af8] to-purple-500 rounded-full flex items-center justify-center">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Your Game Recommendations</h2>
+                    <p className="text-zinc-400 text-sm">Powered by AI similarity matching</p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => setShowResultsModal(false)}
+                  variant="ghost"
+                  size="sm"
+                  className="text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full w-10 h-10 p-0"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* Modal Content - Scrollable */}
+              <div className="overflow-y-auto max-h-[calc(90vh-100px)] p-6">
+                {allGames.length > 0 ? (
+                  <div className="space-y-8">
+                    {/* Compact Summary */}
+                    <div className="bg-gradient-to-r from-zinc-800/50 to-zinc-700/50 rounded-xl p-6 border border-zinc-700">
+                      <div className="flex items-center justify-center gap-6 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-[#5d4af8] rounded-full"></div>
+                          <span className="text-zinc-300">Found <span className="text-white font-semibold">{recommendations.count}</span> matches</span>
+                        </div>
+                        {recommendations.debug && (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                              <span className="text-zinc-300">Database: <span className="text-white font-semibold">{recommendations.debug.with_embeddings}</span> games</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+                              <span className="text-zinc-300">Vector similarity search</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      
+                      {/* Search Query */}
+                      {recommendations.query && (
+                        <div className="mt-4 text-center">
+                          <div className="text-[#5d4af8] font-medium mb-2 text-xs uppercase tracking-wide">Search Query</div>
+                          <div className="text-white bg-zinc-800 rounded-lg px-4 py-2 inline-block border border-zinc-600">
+                            <span className="font-medium">"{recommendations.query}"</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    {/* Games Grid */}
+                    <div>
+                      <div className="text-center mb-6">
+                        <h3 className="text-xl font-bold text-white mb-2">Recommended Games</h3>
+                        <p className="text-zinc-400 text-sm">
+                          Each game is scored based on similarity to your preferences
+                        </p>
+                      </div>
+                      <GameGrid 
+                        games={recommendations.recommendations.map((game: any) => ({
+                          ...game,
+                          scoreInfo: {
+                            similarity: game.similarity_score
+                          }
+                        }))} 
+                        title=""
+                        onAddToLibrary={(gameId: number, status = 'backlog') => {
+                          console.log('Add to Library:', gameId, 'with status:', status)
+                        }}
+                        onMoreInfo={(gameId: number) => console.log('More info:', gameId)}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="text-6xl mb-6 text-zinc-600">×</div>
+                    <h3 className="text-xl font-semibold text-white mb-2">No recommendations found</h3>
+                    <p className="text-zinc-400 max-w-md mx-auto">
+                      We couldn't find any recommendations matching your criteria. Try adjusting your search preferences or selecting different games!
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="border-t border-zinc-700 p-4 bg-zinc-900/50 flex items-center justify-between">
+                <div className="text-sm text-zinc-400">
+                  {allGames.length > 0 && `Showing ${allGames.length} recommendations`}
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => setShowResultsModal(false)}
+                    variant="outline"
+                    className="border-zinc-600 text-zinc-300 hover:bg-zinc-800"
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setRecommendations(null)
+                      setShowResultsModal(false)
+                    }}
+                    className="bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white"
+                  >
+                    New Search
+                  </Button>
                 </div>
               </div>
-              
-              {/* Seed Game Attributes */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                {recommendations.seed.genres && recommendations.seed.genres.length > 0 && (
-                  <div>
-                    <div className="text-[#5d4af8] font-semibold mb-2">Genres:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {recommendations.seed.genres.slice(0, 3).map((genre: any, idx: number) => (
-                        <Badge key={idx} variant="secondary" className="text-xs">
-                          {genre.name || `Genre ${genre.id}`}
-                        </Badge>
-                      ))}
-                      {recommendations.seed.genres.length > 3 && (
-                        <Badge variant="secondary" className="text-xs">
-                          +{recommendations.seed.genres.length - 3} more
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                {recommendations.seed.companies && recommendations.seed.companies.length > 0 && (
-                  <div>
-                    <div className="text-[#5d4af8] font-semibold mb-2">Companies:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {recommendations.seed.companies.slice(0, 2).map((company: any, idx: number) => (
-                        <Badge key={idx} variant="outline" className="text-xs">
-                          {company.company?.name || company.name || `Company ${company.id}`}
-                        </Badge>
-                      ))}
-                      {recommendations.seed.companies.length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{recommendations.seed.companies.length - 2} more
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                {recommendations.seed.platforms && recommendations.seed.platforms.length > 0 && (
-                  <div>
-                    <div className="text-[#5d4af8] font-semibold mb-2">Platforms:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {recommendations.seed.platforms.slice(0, 3).map((platform: any, idx: number) => (
-                        <Badge key={idx} variant="outline" className="text-xs">
-                          {platform.name || `Platform ${platform.id}`}
-                        </Badge>
-                      ))}
-                      {recommendations.seed.platforms.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{recommendations.seed.platforms.length - 3} more
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-
-
-            <div className="space-y-16">
-              {recommendations.dbScored.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-center gap-3 mb-8">
-                    <div className="h-1 w-12 bg-gradient-to-r from-[#5d4af8] to-transparent rounded"></div>
-                    <h3 className="text-2xl font-bold text-white">AI-Scored Matches</h3>
-                    <div className="h-1 w-12 bg-gradient-to-l from-[#5d4af8] to-transparent rounded"></div>
-                  </div>
-                  <p className="text-zinc-400 text-center mb-8 max-w-2xl mx-auto">
-                    These games scored highest based on genre, company, keyword, theme, rating, and platform similarities.
-                  </p>
-                  <GameGrid 
-                    games={recommendations.dbScored.map((game: any) => ({
-                      ...game,
-                      // Add score info to game for potential display
-                      scoreInfo: {
-                        finalScore: game.finalScore,
-                        genreScore: game.genreScore,
-                        companyScore: game.companyScore,
-                        keywordScore: game.keywordScore,
-                        themeScore: game.themeScore,
-                        ratingScore: game.ratingScoreValue,
-                        platformScore: game.platformScore
-                      }
-                    }))} 
-                    title=""
-                    onAddToList={(gameId: number) => console.log('Add to list:', gameId)}
-                    onAddToLibrary={(gameId: number) => console.log('Like game:', gameId)}
-                    onMoreInfo={(gameId: number) => console.log('More info:', gameId)}
-                  />
-                </div>
-              )}
-              
-              {recommendations.igdbPool.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-center gap-3 mb-8">
-                    <div className="h-1 w-12 bg-gradient-to-r from-emerald-500 to-transparent rounded"></div>
-                    <h3 className="text-2xl font-bold text-white">Popular in Same Genres</h3>
-                    <div className="h-1 w-12 bg-gradient-to-l from-emerald-500 to-transparent rounded"></div>
-                  </div>
-                  <p className="text-zinc-400 text-center mb-8 max-w-2xl mx-auto">
-                    Highly-rated games that share genres with "{recommendations.seed.name}".
-                  </p>
-                  <GameGrid 
-                    games={recommendations.igdbPool} 
-                    title=""
-                    onAddToList={(gameId: number) => console.log('Add to list:', gameId)}
-                    onAddToLibrary={(gameId: number) => console.log('Like game:', gameId)}
-                    onMoreInfo={(gameId: number) => console.log('More info:', gameId)}
-                  />
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -1220,17 +1227,6 @@ export default function RecommendationsPage() {
         {!loading && !recommendations && (
           <div className="text-center py-16">
           
-          </div>
-        )}
-
-        {/* No Results */}
-        {recommendations && allGames.length === 0 && !loading && (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-6">😔</div>
-            <h3 className="text-xl font-semibold text-white mb-2">No recommendations found</h3>
-            <p className="text-zinc-400 max-w-md mx-auto">
-              We couldn't find any recommendations for "{recommendations.seed.name}". Try searching for a different game!
-            </p>
           </div>
         )}
       </div>

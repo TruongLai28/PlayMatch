@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Star, Calendar, Users, Tag, Play, Plus, Heart } from 'lucide-react'
+import { X, Star, Calendar, Users, Tag, Play, Plus, Heart, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useLibrary } from '@/hooks/use-library'
 
 interface Game {
   id: number
@@ -28,22 +29,29 @@ interface ExpandedGameCardProps {
   game: Game
   isOpen: boolean
   onClose: () => void
-  onAddToLibriary?: () => void
-  onAddToList?: () => void
+  onAddToLibrary?: (status: 'backlog' | 'playing' | 'completed' | 'dropped', hoursPlayed?: number) => void
   onLike?: () => void
   onPlay?: () => void
+  showHoursInput?: boolean // Add prop to control hours input visibility
 }
 
 export function ExpandedGameCard({
   game,
   isOpen,
   onClose,
-  onAddToLibriary,
-  onAddToList,
+  onAddToLibrary,
   onLike,
-  onPlay
+  onPlay,
+  showHoursInput = false
 }: ExpandedGameCardProps) {
+  const { getGameStatus, libraryLoaded } = useLibrary()
   const [isMounted, setIsMounted] = useState(false)
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
+  const [hoursPlayed, setHoursPlayed] = useState(0)
+  const [selectedStatus, setSelectedStatus] = useState<'backlog' | 'playing' | 'completed' | 'dropped' | null>(null)
+  
+  // Get current library status for this game
+  const currentStatus = getGameStatus(game.id)
 
   useEffect(() => {
     setIsMounted(true)
@@ -52,6 +60,8 @@ export function ExpandedGameCard({
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
+      // Reset selected status when modal opens
+      setSelectedStatus(null)
     } else {
       document.body.style.overflow = 'unset'
     }
@@ -60,6 +70,20 @@ export function ExpandedGameCard({
       document.body.style.overflow = 'unset'
     }
   }, [isOpen])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showStatusDropdown && !(event.target as Element).closest('.relative')) {
+        setShowStatusDropdown(false)
+      }
+    }
+
+    if (showStatusDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showStatusDropdown])
 
   const getCoverUrl = (url?: string) => {
     if (!url) {
@@ -93,6 +117,37 @@ export function ExpandedGameCard({
     return game.companies.map(comp => 
       comp.company?.name || comp.name || 'Unknown'
     ).filter(name => name !== 'Unknown').slice(0, 3)
+  }
+
+  const statusOptions = [
+    { value: 'backlog', label: 'Add to Backlog', color: 'bg-blue-600 hover:bg-blue-700' },
+    { value: 'playing', label: 'Currently Playing', color: 'bg-green-600 hover:bg-green-700' },
+    { value: 'completed', label: 'Mark as Completed', color: 'bg-purple-600 hover:bg-purple-700' },
+    { value: 'dropped', label: 'Mark as Dropped', color: 'bg-red-600 hover:bg-red-700' }
+  ] as const
+
+  // Get the current status option or selected status option
+  const currentStatusOption = currentStatus ? statusOptions.find(option => option.value === currentStatus) : null
+  const selectedStatusOption = selectedStatus ? statusOptions.find(option => option.value === selectedStatus) : null
+  
+  // Determine which option to display (prefer selected over current)
+  const displayOption = selectedStatusOption || currentStatusOption
+  
+  // Get the button text based on current status
+  const getButtonText = () => {
+    if (selectedStatus) {
+      return selectedStatusOption?.label || 'Add to Library'
+    }
+    if (currentStatus) {
+      switch (currentStatus) {
+        case 'backlog': return 'In Backlog'
+        case 'playing': return 'Currently Playing'
+        case 'completed': return 'Completed'
+        case 'dropped': return 'Dropped'
+        default: return 'Add to Library'
+      }
+    }
+    return 'Add to Library'
   }
 
   if (!isOpen || !isMounted) return null
@@ -152,24 +207,61 @@ export function ExpandedGameCard({
               </div>
             </div>
 
+            {/* Hours Played Input */}
+            {showHoursInput && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                  Hours Played
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={hoursPlayed}
+                    onChange={(e) => setHoursPlayed(parseFloat(e.target.value) || 0)}
+                    className="w-24 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8]"
+                    placeholder="0"
+                  />
+                  <span className="text-zinc-400 text-sm">hours</span>
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-3 mb-8">
-              <Button
-                onClick={onAddToLibriary}
-                className="bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white px-8 py-3 text-lg font-medium"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Add to List
-              </Button>
-              <Button
-                onClick={onAddToList}
-                variant="outline"
-                className="border-zinc-600 text-zinc-300 hover:bg-zinc-800 px-6 py-3"
-              
-              >
-                <Heart className="h-4 w-4 mr-2" />
-                Wishlist
-              </Button>
+              <div className="relative">
+                <Button
+                  onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                  className={`${displayOption?.color || 'bg-[#5d4af8] hover:bg-[#5d4af8]/90'} text-white px-8 py-3 text-lg font-medium flex items-center gap-2`}
+                >
+                  <Plus className="h-5 w-5" />
+                  {getButtonText()}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+                
+                {/* Status Dropdown */}
+                {showStatusDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-50">
+                    <div className="py-2">
+                      {statusOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setSelectedStatus(option.value)
+                            onAddToLibrary?.(option.value, hoursPlayed)
+                            setShowStatusDropdown(false)
+                          }}
+                          className="w-full text-left px-4 py-3 text-white hover:bg-zinc-700 transition-colors flex items-center gap-3"
+                        >
+                          <div className={`w-3 h-3 rounded-full ${option.color.split(' ')[0].replace('bg-', 'bg-')}`} />
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Game Description */}

@@ -48,7 +48,7 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                <a href="/browse" className="text-zinc-400 hover:text-white text-sm transition-colors">
                   Browse Games
                 </a>
               </li>
@@ -60,27 +60,27 @@ export function Footer() {
             <h4 className="text-base font-semibold text-white">Categories</h4>
             <ul className="space-y-1">
               <li>
-                <a href="#" className="text-zinc-400 hover:text-white text-sm transition-colors">
-                  Action
+                <a href="/browse?genre_id=7" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                  Music
                 </a>
               </li>
               <li>
-                <a href="#" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                <a href="/browse?genre_id=31" className="text-zinc-400 hover:text-white text-sm transition-colors">
                   Adventure
                 </a>
               </li>
               <li>
-                <a href="#" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                <a href="/browse?genre_id=12" className="text-zinc-400 hover:text-white text-sm transition-colors">
                   RPG
                 </a>
               </li>
               <li>
-                <a href="#" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                <a href="/browse?genre_id=15" className="text-zinc-400 hover:text-white text-sm transition-colors">
                   Strategy
                 </a>
               </li>
               <li>
-                <a href="#" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                <a href="/browse?genre_id=32" className="text-zinc-400 hover:text-white text-sm transition-colors">
                   Indie
                 </a>
               </li>
