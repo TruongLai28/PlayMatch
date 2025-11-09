@@ -1,6 +1,6 @@
  'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { ExpandedGameCard } from './ExpandedGameCard'
 import { useLibrary } from '@/hooks/use-library'
 
@@ -20,6 +20,11 @@ interface Game {
   themes?: Array<{ id: number; name: string }>
   first_release_date?: number
   release_dates?: Array<{ date: number }>
+  // Similarity score from recommendation engine
+  similarity_score?: number
+  scoreInfo?: {
+    similarity?: number
+  }
 }
 
 interface GameCardProps {
@@ -35,12 +40,15 @@ export function GameCard({
   onMoreInfo,
   isLastCard = false
 }: GameCardProps) {
-  const { getGameStatus } = useLibrary()
+  const { getGameStatus } = useLibrary(false) // Don't auto-load library for each game card
   const cardRef = useRef<HTMLDivElement | null>(null)
   const [isExpanded, setIsExpanded] = useState(false)
 
   // Get current library status for this game
   const currentStatus = getGameStatus(game.id)
+  
+  // Get similarity score from either field
+  const similarityScore = game.similarity_score || game.scoreInfo?.similarity
 
   // Get button styling based on current status
   const getButtonStyle = () => {
@@ -118,15 +126,26 @@ export function GameCard({
           className="w-full h-[400px] object-cover"
         />
        
-        {/* Status Badge - Always visible when game is in library */}
-        {currentStatus && (
-          <div className="absolute top-2 right-2 z-10">
+        {/* Top-right badges container */}
+        <div className="absolute top-2 right-2 z-10 flex flex-col gap-2 items-end">
+          {/* Similarity Score Badge - Only visible when available */}
+          {similarityScore && (
+            <div className="bg-gradient-to-r from-[#5d4af8] to-purple-500 text-white text-xs px-3 py-1 rounded-full font-medium shadow-lg flex items-center gap-1">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+              </svg>
+              <span>{Math.round((similarityScore * 100))}% match</span>
+            </div>
+          )}
+          
+          {/* Status Badge - Always visible when game is in library */}
+          {currentStatus && (
             <div className={`${getButtonStyle()} text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg flex items-center gap-1`}>
               <span className="text-sm">{getButtonIcon()}</span>
               <span className="capitalize">{currentStatus}</span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
        
         {/* Gradient overlay on hover */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 pointer-events-none" />
@@ -165,6 +184,16 @@ export function GameCard({
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-green-400 text-sm font-medium">
                     {Math.round(game.rating / 10)}/10
+                  </span>
+                </div>
+              )}
+              {similarityScore && (
+                <div className="flex items-center space-x-1 bg-[#5d4af8]/20 px-2 py-1 rounded-full">
+                  <svg className="w-3 h-3 text-[#5d4af8]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-[#5d4af8] text-sm font-medium">
+                    {Math.round((similarityScore * 100))}% match
                   </span>
                 </div>
               )}

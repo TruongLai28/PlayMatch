@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Info, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
+import { ExpandedGameCard } from '@/features/game/components/ExpandedGameCard'
 
 interface Game {
   id: number
@@ -11,7 +12,14 @@ interface Game {
   }
   summary?: string
   rating?: number
-  genres?: Array<{ name: string }>
+  total_rating?: number
+  genres?: Array<{ id: number; name: string }>
+  companies?: Array<{ company?: { id: number; name: string }; id?: number; name?: string }>
+  platforms?: Array<{ id: number; name: string }>
+  keywords?: Array<{ id: number; name: string }>
+  themes?: Array<{ id: number; name: string }>
+  first_release_date?: number
+  release_dates?: Array<{ date: number }>
 }
 
 interface HeroSectionProps {
@@ -22,6 +30,8 @@ export function HeroSection({ games }: HeroSectionProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isAutoPlaying, setIsAutoPlaying] = useState(true)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [showExpandedCard, setShowExpandedCard] = useState(false)
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null)
 
   // Auto-advance slides
   useEffect(() => {
@@ -102,6 +112,11 @@ export function HeroSection({ games }: HeroSectionProps) {
     setIsAutoPlaying(!isAutoPlaying)
   }
 
+  const handleMoreInfo = (game: Game) => {
+    setSelectedGame(game)
+    setShowExpandedCard(true)
+  }
+
   if (!games || games.length === 0) return null
 
   const currentGame = games[currentSlide]
@@ -140,8 +155,8 @@ export function HeroSection({ games }: HeroSectionProps) {
               )}
               {currentGame.genres && currentGame.genres.length > 0 && (
                 <div className="flex space-x-2">
-                  {currentGame.genres.slice(0, 3).map((genre: any, index: number) => (
-                    <span key={index} className="text-gray-300">
+                  {currentGame.genres.slice(0, 3).map((genre, index) => (
+                    <span key={genre.id || index} className="text-gray-300">
                       {genre.name}
                       {index < Math.min(currentGame.genres!.length, 3) - 1 && ' •'}
                     </span>
@@ -157,7 +172,10 @@ export function HeroSection({ games }: HeroSectionProps) {
             )}
 
             <div className="flex space-x-4 pt-3">
-              <button className="bg-gray-600/70 text-white px-4 py-2 rounded flex items-center space-x-2 hover:bg-gray-600 transition-colors">
+              <button 
+                onClick={() => handleMoreInfo(currentGame)}
+                className="bg-gray-600/70 text-white px-4 py-2 rounded flex items-center space-x-2 hover:bg-gray-600 transition-colors"
+              >
                 <Info size={18} />
                 <span>More Info</span>
               </button>
@@ -248,6 +266,22 @@ export function HeroSection({ games }: HeroSectionProps) {
         }
       `}</style>
       </div>
+
+      {/* Expanded Game Card Modal */}
+      {selectedGame && (
+        <ExpandedGameCard
+          game={selectedGame}
+          isOpen={showExpandedCard}
+          onClose={() => {
+            setShowExpandedCard(false)
+            setSelectedGame(null)
+          }}
+          onAddToLibrary={(status) => {
+            console.log(`Adding game ${selectedGame.id} to library with status: ${status}`)
+            // You can implement actual library functionality here
+          }}
+        />
+      )}
     </div>
   )
 }

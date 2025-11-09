@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { HeroSection } from './components/HeroSection'
 import { GameRow, CategoryBar } from '@/features/game'
 import { useLibrary } from '@/hooks/use-library'
-import { useToast, ToastContainer } from '@/hooks/use-toast'
+import { useToast } from '@/hooks/use-toast'
 
 interface Game {
   id: number
@@ -45,7 +45,7 @@ function HeroSkeleton() {
 }
 
 export default function HomePage() {
-  const { addGameToLibrary } = useLibrary()
+  const { addGameToLibrary } = useLibrary(false) // Don't auto-load library on home page
   const toast = useToast()
   
   const [featuredGame, setFeaturedGame] = useState<Game | null>(null)
@@ -325,7 +325,6 @@ export default function HomePage() {
           title="Recommended for You" 
           games={recommendations}
           loading={false}
-          showCount={true}
           onAddToLibrary={(gameId, status = 'backlog') => {
             handleAddToLibrary(gameId, status)
           }}
@@ -336,7 +335,6 @@ export default function HomePage() {
           title="Popular Games" 
           games={popularGames}
           loading={false}
-          showCount={true}
           onAddToLibrary={(gameId, status = 'backlog') => {
             handleAddToLibrary(gameId, status)
           }}
@@ -347,7 +345,6 @@ export default function HomePage() {
           title="New Releases" 
           games={newReleases}
           loading={false}
-          showCount={true}
           onAddToLibrary={(gameId, status = 'backlog') => {
             handleAddToLibrary(gameId, status)
           }}
@@ -364,9 +361,6 @@ export default function HomePage() {
           </div>
         )}
       </div>
-      
-      {/* Toast Container */}
-      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
     </>
   )

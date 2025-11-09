@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { GameCard, GameGrid, ExpandedGameCard } from '@/features/game'
 import { useLibrary } from '@/hooks/use-library'
-import { useToast, ToastContainer } from '@/hooks/use-toast'
+import { useToast } from '@/hooks/use-toast'
 
 interface Game {
   id: number
@@ -37,7 +37,7 @@ interface FilterState {
 export default function BrowsePage() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { addGameToLibrary, isLoading: libraryLoading } = useLibrary()
+  const { addGameToLibrary, isLoading: libraryLoading } = useLibrary(false) // Don't auto-load library on browse page
   const toast = useToast()
   
   const [games, setGames] = useState<Game[]>([])
@@ -146,64 +146,47 @@ export default function BrowsePage() {
           
           // Add genre filters
           if (filters.selectedGenres.length > 0) {
-            // Check if we have genre IDs from URL or genre names from UI
-            const genreIds = searchParams.getAll('genre_id')
+            // Convert genre names to IDs
+            const genreNameToId: { [key: string]: number } = {
+              'Point-and-click': 2,
+              'Fighting': 4,
+              'Shooter': 5,
+              'Music': 7,
+              'Platform': 8,
+              'Puzzle': 9,
+              'Racing': 10,
+              'Real Time Strategy (RTS)': 11,
+              'Role-playing (RPG)': 12,
+              'Simulator': 13,
+              'Sport': 14,
+              'Strategy': 15,
+              'Turn-based Strategy (TBS)': 16,
+              'Tactical': 24,
+              'Hack & slash/Beat \'em up': 25,
+              'Quiz/Trivia': 26,
+              'Pinball': 30,
+              'Adventure': 31,
+              'Indie': 32,
+              'Arcade': 33,
+              'Visual Novel': 34,
+              'Card & Board Game': 35,
+              'MOBA': 36
+            }
             
-            if (genreIds.length > 0) {
-              // Use genre IDs directly from URL
-              const genreParams = genreIds.map(id => `genre_id=${id}`).join('&')
+            const mappedGenreIds = filters.selectedGenres
+              .map(name => genreNameToId[name])
+              .filter(id => id !== undefined)
+            
+            if (mappedGenreIds.length > 0) {
+              const genreParams = mappedGenreIds.map(id => `genre_id=${id}`).join('&')
               url += `&${genreParams}`
-            } else {
-              // Convert genre names to IDs for UI-selected genres
-              const genreNameToId: { [key: string]: number } = {
-                'Point-and-click': 2,
-                'Fighting': 4,
-                'Shooter': 5,
-                'Music': 7,
-                'Platform': 8,
-                'Puzzle': 9,
-                'Racing': 10,
-                'Real Time Strategy (RTS)': 11,
-                'Role-playing (RPG)': 12,
-                'Simulator': 13,
-                'Sport': 14,
-                'Strategy': 15,
-                'Turn-based Strategy (TBS)': 16,
-                'Tactical': 24,
-                'Hack & slash/Beat \'em up': 25,
-                'Quiz/Trivia': 26,
-                'Pinball': 30,
-                'Adventure': 31,
-                'Indie': 32,
-                'Arcade': 33,
-                'Visual Novel': 34,
-                'Card & Board Game': 35,
-                'MOBA': 36
-              }
-              
-              const mappedGenreIds = filters.selectedGenres
-                .map(name => genreNameToId[name])
-                .filter(id => id !== undefined)
-              
-              if (mappedGenreIds.length > 0) {
-                const genreParams = mappedGenreIds.map(id => `genre_id=${id}`).join('&')
-                url += `&${genreParams}`
-              }
             }
           }
           
           // Add platform filters
           if (filters.selectedPlatforms.length > 0) {
-            const platformIds = searchParams.getAll('platform_id')
-            if (platformIds.length > 0) {
-              // Use platform IDs directly from URL
-              const platformParams = platformIds.map(id => `platform_id=${id}`).join('&')
-              url += `&${platformParams}`
-            } else {
-              // Use platform IDs from UI filters
-              const platformParams = filters.selectedPlatforms.map(id => `platform_id=${id}`).join('&')
-              url += `&${platformParams}`
-            }
+            const platformParams = filters.selectedPlatforms.map(id => `platform_id=${id}`).join('&')
+            url += `&${platformParams}`
           }
           
           // Add year filter
@@ -646,7 +629,7 @@ export default function BrowsePage() {
                       : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300"
                     }
                   >
-                    Highest Rated (90+)
+                    Highest Rated (9.0+)
                   </Button>
                   <Button
                     variant={filters.sortBy === 'release_date' ? 'default' : 'outline'}
@@ -821,7 +804,7 @@ export default function BrowsePage() {
                       <select
                         value={filters.minRating || ''}
                         onChange={(e) => handleFilterChange('minRating', e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors"
+                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors appearance-none"
                         style={{
                           backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
                           backgroundRepeat: 'no-repeat',
@@ -831,11 +814,14 @@ export default function BrowsePage() {
                         }}
                       >
                         <option value="" className="bg-zinc-800 text-zinc-200">Any</option>
-                        <option value="90" className="bg-zinc-800 text-zinc-200">90+</option>
-                        <option value="80" className="bg-zinc-800 text-zinc-200">80+</option>
-                        <option value="70" className="bg-zinc-800 text-zinc-200">70+</option>
-                        <option value="60" className="bg-zinc-800 text-zinc-200">60+</option>
-                        <option value="50" className="bg-zinc-800 text-zinc-200">50+</option>
+                        <option value="90" className="bg-zinc-800 text-zinc-200">9.0+</option>
+                        <option value="85" className="bg-zinc-800 text-zinc-200">8.5+</option>
+                        <option value="80" className="bg-zinc-800 text-zinc-200">8.0+</option>
+                        <option value="75" className="bg-zinc-800 text-zinc-200">7.5+</option>
+                        <option value="70" className="bg-zinc-800 text-zinc-200">7.0+</option>
+                        <option value="65" className="bg-zinc-800 text-zinc-200">6.5+</option>
+                        <option value="60" className="bg-zinc-800 text-zinc-200">6.0+</option>
+                        <option value="50" className="bg-zinc-800 text-zinc-200">5.0+</option>
                       </select>
                     </div>
                     <div>
@@ -843,7 +829,7 @@ export default function BrowsePage() {
                       <select
                         value={filters.maxRating || ''}
                         onChange={(e) => handleFilterChange('maxRating', e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors"
+                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors appearance-none"
                         style={{
                           backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
                           backgroundRepeat: 'no-repeat',
@@ -853,11 +839,12 @@ export default function BrowsePage() {
                         }}
                       >
                         <option value="" className="bg-zinc-800 text-zinc-200">Any</option>
-                        <option value="95" className="bg-zinc-800 text-zinc-200">95 or less</option>
-                        <option value="90" className="bg-zinc-800 text-zinc-200">90 or less</option>
-                        <option value="85" className="bg-zinc-800 text-zinc-200">85 or less</option>
-                        <option value="80" className="bg-zinc-800 text-zinc-200">80 or less</option>
-                        <option value="75" className="bg-zinc-800 text-zinc-200">75 or less</option>
+                        <option value="100" className="bg-zinc-800 text-zinc-200">10.0 or less</option>
+                        <option value="95" className="bg-zinc-800 text-zinc-200">9.5 or less</option>
+                        <option value="90" className="bg-zinc-800 text-zinc-200">9.0 or less</option>
+                        <option value="85" className="bg-zinc-800 text-zinc-200">8.5 or less</option>
+                        <option value="80" className="bg-zinc-800 text-zinc-200">8.0 or less</option>
+                        <option value="75" className="bg-zinc-800 text-zinc-200">7.5 or less</option>
                       </select>
                     </div>
                   </div>
@@ -978,7 +965,7 @@ export default function BrowsePage() {
                     }))
                   }}
                 >
-                  Rating: {filters.minRating ? `${filters.minRating}+` : 'All'}
+                  Rating: {filters.minRating ? `${(filters.minRating / 10).toFixed(1)}+` : 'All'}
                   <span className="ml-1 text-xs">×</span>
                 </Badge>
               )}
@@ -1136,9 +1123,6 @@ export default function BrowsePage() {
           }}
         />
       )}
-      
-      {/* Toast Container */}
-      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
     </>
   )

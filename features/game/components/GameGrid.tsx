@@ -18,6 +18,11 @@ interface Game {
   themes?: Array<{ id: number; name: string }>
   first_release_date?: number
   release_dates?: Array<{ date: number }>
+  // Similarity score from recommendation engine
+  similarity_score?: number
+  scoreInfo?: {
+    similarity?: number
+  }
 }
 
 interface GameGridProps {

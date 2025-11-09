@@ -25,11 +25,12 @@ export interface LibraryEntry {
   }
 }
 
-export function useLibrary() {
+export function useLibrary(autoLoad: boolean = true) {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [library, setLibrary] = useState<LibraryEntry[]>([])
   const [libraryLoaded, setLibraryLoaded] = useState(false)
+  const [lazyLoadRequested, setLazyLoadRequested] = useState(false)
 
   // Fetch user's library
   const fetchLibrary = useCallback(async () => {
@@ -64,15 +65,27 @@ export function useLibrary() {
 
   // Check if a game is in the library and return its status
   const getGameStatus = useCallback((gameId: number) => {
+    // If library hasn't been loaded yet and autoLoad is false, request lazy loading once
+    if (!libraryLoaded && !isLoading && !autoLoad && !lazyLoadRequested) {
+      setLazyLoadRequested(true)
+      fetchLibrary()
+    }
+    
     const entry = library.find(item => item.gameId === gameId)
     return entry?.status || null
-  }, [library])
+  }, [library, libraryLoaded, isLoading, autoLoad, lazyLoadRequested, fetchLibrary])
 
-  // Load library when user changes
+  // Load library when user changes - but only if autoLoad is true
   useEffect(() => {
-    setLibraryLoaded(false)
-    fetchLibrary()
-  }, [fetchLibrary])
+    if (autoLoad) {
+      setLibraryLoaded(false)
+      setLazyLoadRequested(false)
+      fetchLibrary()
+    } else {
+      // Reset lazy load flag when user changes
+      setLazyLoadRequested(false)
+    }
+  }, [fetchLibrary, autoLoad, user])
 
   const addToLibrary = useCallback(async (params: AddToLibraryParams) => {
     if (!user) {
@@ -103,8 +116,10 @@ export function useLibrary() {
 
       const data = await response.json()
       
-      // Update local library state
-      await fetchLibrary()
+      // Only update local library state if it was previously loaded
+      if (libraryLoaded) {
+        await fetchLibrary()
+      }
       
       return data
     } catch (error) {
@@ -113,7 +128,7 @@ export function useLibrary() {
     } finally {
       setIsLoading(false)
     }
-  }, [user])
+  }, [user, fetchLibrary, libraryLoaded])
 
   const removeFromLibrary = useCallback(async (gameId: number) => {
     if (!user) {
@@ -138,8 +153,10 @@ export function useLibrary() {
 
       const data = await response.json()
       
-      // Update local library state
-      await fetchLibrary()
+      // Only update local library state if it was previously loaded
+      if (libraryLoaded) {
+        await fetchLibrary()
+      }
       
       return data
     } catch (error) {
@@ -148,7 +165,7 @@ export function useLibrary() {
     } finally {
       setIsLoading(false)
     }
-  }, [user])
+  }, [user, fetchLibrary, libraryLoaded])
 
   // Function to ensure game exists in database before adding to library
   const ensureGameInDatabase = useCallback(async (game: any) => {

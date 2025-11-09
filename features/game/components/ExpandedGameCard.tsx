@@ -23,6 +23,11 @@ interface Game {
   themes?: Array<{ id: number; name: string }>
   first_release_date?: number
   release_dates?: Array<{ date: number }>
+  // Similarity score from recommendation engine
+  similarity_score?: number
+  scoreInfo?: {
+    similarity?: number
+  }
 }
 
 interface ExpandedGameCardProps {
@@ -44,7 +49,7 @@ export function ExpandedGameCard({
   onPlay,
   showHoursInput = false
 }: ExpandedGameCardProps) {
-  const { getGameStatus, libraryLoaded } = useLibrary()
+  const { getGameStatus, libraryLoaded } = useLibrary(false) // Don't auto-load library for expanded cards
   const [isMounted, setIsMounted] = useState(false)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [hoursPlayed, setHoursPlayed] = useState(0)
@@ -52,6 +57,9 @@ export function ExpandedGameCard({
   
   // Get current library status for this game
   const currentStatus = getGameStatus(game.id)
+  
+  // Get similarity score from either field
+  const similarityScore = game.similarity_score || game.scoreInfo?.similarity
 
   useEffect(() => {
     setIsMounted(true)
@@ -192,6 +200,16 @@ export function ExpandedGameCard({
                     <Star className="h-4 w-4 text-green-400 fill-green-400" />
                     <span className="text-green-400 font-semibold text-lg">
                       {Math.round((game.rating || game.total_rating!) / 10)}/10
+                    </span>
+                  </div>
+                )}
+                {similarityScore && (
+                  <div className="flex items-center space-x-1 bg-gradient-to-r from-[#5d4af8]/20 to-purple-500/20 px-3 py-2 rounded-full">
+                    <svg className="h-4 w-4 text-[#5d4af8]" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-[#5d4af8] font-semibold text-lg">
+                      {Math.round((similarityScore * 100))}% match
                     </span>
                   </div>
                 )}

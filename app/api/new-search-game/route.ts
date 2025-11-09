@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '../../../lib/supabase'
-import { igdbClient } from '../../../lib/igdb'
-import { normalize, cleanSearchQuery, Game } from '../../../lib/search-query'
+import { normalize, Game } from '../../../lib/search-query'
 import { filterByGenre } from '../../../lib/filterByGenre'
 import { filterByYear } from '../../../lib/filterByYear'
 import { filterByPlatform } from '../../../lib/filterByPlatform'
@@ -264,7 +263,7 @@ export async function GET(request: NextRequest) {
     const queryNormalized = normalize(query)
 
     // --- Supabase search ---
-    let localResults: Game[] = []
+    let results: Game[] = []
     try {
       const broadQuery = query.slice(0, 3)
       const { data, error } = await supabase
@@ -287,74 +286,27 @@ export async function GET(request: NextRequest) {
           : undefined,
       }))
 
-      localResults = parsed.filter((g) => normalize(g.name).includes(queryNormalized))
-      const { filteredGames } = filterByGenre(localResults, genreIds)
-      localResults = filteredGames
-      const { filteredGames: platformFiltered } = filterByPlatform(localResults, platformIds)
-      localResults = platformFiltered
-      const { filteredGames: yearFiltered } = filterByYear(localResults, year)
-      localResults = yearFiltered
-      const { filteredGames: ratingFiltered } = filterByRating(localResults, minRating, maxRating)
-      localResults = ratingFiltered
+      results = parsed.filter((g) => normalize(g.name).includes(queryNormalized))
+      const { filteredGames } = filterByGenre(results, genreIds)
+      results = filteredGames
+      const { filteredGames: platformFiltered } = filterByPlatform(results, platformIds)
+      results = platformFiltered
+      const { filteredGames: yearFiltered } = filterByYear(results, year)
+      results = yearFiltered
+      const { filteredGames: ratingFiltered } = filterByRating(results, minRating, maxRating)
+      results = ratingFiltered
 
-      console.log(`[Supabase Results] (${localResults.length} found)`)
-      console.log('[Supabase Game Names]: [\n  ' + localResults.map((g) => `'${g.name}'`).join(',\n  ') + '\n]')
+      console.log(`[Supabase Results] (${results.length} found)`)
+      console.log('[Supabase Game Names]: [\n  ' + results.map((g) => `'${g.name}'`).join(',\n  ') + '\n]')
     } catch (e) {
       console.error('Supabase query failed:', e)
     }
 
-    // --- IGDB fallback ---
-    let igdbResults: Game[] = []
-    if (localResults.length < 500) {
-      console.log('Falling back to IGDB')
-      try {
-        const igdbQuery = cleanSearchQuery(query).split(' ').slice(0, 5).join(' ')
-        if (igdbQuery.length > 0) {
-          const igdbRaw: any[] = await igdbClient.searchGames(igdbQuery)
-          igdbResults = igdbRaw.map((g: any) => ({
-            id: g.id,
-            name: g.name,
-            summary: g.summary,
-            cover_url: g.cover?.url || undefined,
-            first_release_date: g.first_release_date
-              ? new Date(g.first_release_date * 1000).toISOString().split('T')[0]
-              : undefined,
-            genres: g.genres?.map((x: any) => ({ id: x.id, name: x.name })) || [],
-            platforms: g.platforms?.map((x: any) => ({ id: x.id, name: x.name })) || [],
-            rating: g.rating ?? undefined,
-          }))
-
-          const { filteredGames } = filterByGenre(igdbResults, genreIds)
-          igdbResults = filteredGames
-          const { filteredGames: platformFiltered } = filterByPlatform(igdbResults, platformIds)
-          igdbResults = platformFiltered
-          const { filteredGames: yearFiltered } = filterByYear(igdbResults, year)
-          igdbResults = yearFiltered
-          const { filteredGames: ratingFiltered } = filterByRating(igdbResults, minRating, maxRating)
-          igdbResults = ratingFiltered
-
-          console.log(`[IGDB Results] (${igdbResults.length} found)`)
-          console.log('[IGDB Game Names]: [\n  ' + igdbResults.map((g) => `'${g.name}'`).join(',\n  ') + '\n]')
-        }
-      } catch (e) {
-        console.error('IGDB request failed:', e)
-      }
-    }
-
-    // Combine & deduplicate 
-    const seen = new Set<string>()
-    const combined = [...localResults, ...igdbResults].filter((g) => {
-      const key = g.name?.toLowerCase()
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-
-    console.log(`[Combined Results]: ${combined.length} games total`)
-    console.log('[Game Names]: [\n  ' + combined.map((g) => `'${g.name}'`).join(',\n  ') + '\n]')
+    console.log(`[Final Results]: ${results.length} games total`)
+    console.log('[Game Names]: [\n  ' + results.map((g) => `'${g.name}'`).join(',\n  ') + '\n]')
 
     return NextResponse.json({
-      results: combined.map((g) => ({
+      results: results.map((g) => ({
         id: g.id,
         name: g.name,
         summary: g.summary,
@@ -364,7 +316,7 @@ export async function GET(request: NextRequest) {
         platforms: g.platforms,
         rating: g.rating ?? undefined,
       })),
-      total: combined.length,
+      total: results.length,
     })
   } catch (err) {
     console.error('Search error:', err)

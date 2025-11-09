@@ -26,6 +26,11 @@ export interface Game {
   genres?: Array<{ id: number; name: string }>
   created_at?: string
   updated_at?: string
+  // Similarity score from recommendation engine
+  similarity_score?: number
+  scoreInfo?: {
+    similarity?: number
+  }
 }
 
 export interface User {

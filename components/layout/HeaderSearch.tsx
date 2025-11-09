@@ -227,9 +227,10 @@ export function HeaderSearch() {
     console.log('Selected game:', game.name, 'ID:', game.id)
     setSelectedGame(game)
     setShowExpandedCard(true)
-    setIsSearchOpen(false)
-    setModalSearchInput('')
-    setSearchResults([])
+    // Don't close search modal - keep it open so user can continue browsing
+    // setIsSearchOpen(false)
+    // setModalSearchInput('')
+    // setSearchResults([])
   }
 
   const handleCloseExpandedCard = () => {
@@ -447,9 +448,6 @@ export function HeaderSearch() {
                                 <div className="flex-1 min-w-0">
                                   <div className="text-zinc-200 font-medium truncate">
                                     {game.name}
-                                    <span className="text-zinc-500 text-xs ml-2">
-                                      {game.cover_url ? (game.cover_url.includes('igdb') ? '[IGDB]' : '[DB]') : '[No Cover]'}
-                                    </span>
                                   </div>
                                   {game.genres?.length > 0 && (
                                     <div className="text-zinc-400 text-sm truncate">
@@ -523,7 +521,7 @@ export function HeaderSearch() {
                     )}
                     {(minRating !== undefined || maxRating !== undefined) && (
                       <span className="rounded-md bg-rose-600/90 px-3 py-1.5 text-sm text-white">
-                        Rating: {minRating || 0}-{maxRating || 100}
+                        Rating: {minRating ? (minRating / 10).toFixed(1) : '0'}-{maxRating ? (maxRating / 10).toFixed(1) : '10'}
                       </span>
                     )}
                     {(selectedGenres.length > 0 || selectedPlatforms.length > 0 || selectedYear || minRating !== undefined || maxRating !== undefined || modalSearchInput.trim()) && (
@@ -673,7 +671,7 @@ export function HeaderSearch() {
                       <select
                         value={minRating || ''}
                         onChange={(e) => setMinRating(e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors"
+                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors appearance-none"
                         style={{
                           backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
                           backgroundRepeat: 'no-repeat',
@@ -683,11 +681,14 @@ export function HeaderSearch() {
                         }}
                       >
                         <option value="" className="bg-zinc-800 text-zinc-200">Any</option>
-                        <option value="90" className="bg-zinc-800 text-zinc-200">90+</option>
-                        <option value="80" className="bg-zinc-800 text-zinc-200">80+</option>
-                        <option value="70" className="bg-zinc-800 text-zinc-200">70+</option>
-                        <option value="60" className="bg-zinc-800 text-zinc-200">60+</option>
-                        <option value="50" className="bg-zinc-800 text-zinc-200">50+</option>
+                        <option value="90" className="bg-zinc-800 text-zinc-200">9.0+</option>
+                        <option value="85" className="bg-zinc-800 text-zinc-200">8.5+</option>
+                        <option value="80" className="bg-zinc-800 text-zinc-200">8.0+</option>
+                        <option value="75" className="bg-zinc-800 text-zinc-200">7.5+</option>
+                        <option value="70" className="bg-zinc-800 text-zinc-200">7.0+</option>
+                        <option value="65" className="bg-zinc-800 text-zinc-200">6.5+</option>
+                        <option value="60" className="bg-zinc-800 text-zinc-200">6.0+</option>
+                        <option value="50" className="bg-zinc-800 text-zinc-200">5.0+</option>
                       </select>
                     </div>
                     <div>
@@ -695,7 +696,7 @@ export function HeaderSearch() {
                       <select
                         value={maxRating || ''}
                         onChange={(e) => setMaxRating(e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors"
+                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors appearance-none"
                         style={{
                           backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
                           backgroundRepeat: 'no-repeat',
@@ -705,11 +706,12 @@ export function HeaderSearch() {
                         }}
                       >
                         <option value="" className="bg-zinc-800 text-zinc-200">Any</option>
-                        <option value="95" className="bg-zinc-800 text-zinc-200">95 or less</option>
-                        <option value="90" className="bg-zinc-800 text-zinc-200">90 or less</option>
-                        <option value="85" className="bg-zinc-800 text-zinc-200">85 or less</option>
-                        <option value="80" className="bg-zinc-800 text-zinc-200">80 or less</option>
-                        <option value="75" className="bg-zinc-800 text-zinc-200">75 or less</option>
+                        <option value="100" className="bg-zinc-800 text-zinc-200">10.0 or less</option>
+                        <option value="95" className="bg-zinc-800 text-zinc-200">9.5 or less</option>
+                        <option value="90" className="bg-zinc-800 text-zinc-200">9.0 or less</option>
+                        <option value="85" className="bg-zinc-800 text-zinc-200">8.5 or less</option>
+                        <option value="80" className="bg-zinc-800 text-zinc-200">8.0 or less</option>
+                        <option value="75" className="bg-zinc-800 text-zinc-200">7.5 or less</option>
                       </select>
                     </div>
                   </div>

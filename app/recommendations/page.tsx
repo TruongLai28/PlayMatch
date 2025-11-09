@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Sparkles, Search, ChevronDown, X } from 'lucide-react'
 import { translateGenreNamesToIds } from '@/lib/genre-map'
+import { useToast } from '@/hooks/use-toast'
+import { useLibrary } from '@/hooks/use-library'
 
 interface Game {
   id: number
@@ -49,6 +51,8 @@ interface RecommendationResponse {
 export default function RecommendationsPage() {
   const searchParams = useSearchParams()
   const seedId = searchParams.get('seedId')
+  const toast = useToast()
+  const { addGameToLibrary, isLoading: libraryLoading } = useLibrary(false)
   
   const [recommendations, setRecommendations] = useState<RecommendationResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -207,10 +211,14 @@ export default function RecommendationsPage() {
           setSearchInput('')
         }
       } else {
-        setError('No games found with that name')
+        const errorMsg = 'No games found with that name'
+        setError(errorMsg)
+        toast.error(errorMsg)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to search for game')
+      const errorMsg = err instanceof Error ? err.message : 'Failed to search for game'
+      setError(errorMsg)
+      toast.error(errorMsg)
     } finally {
       setLoading(false)
     }
@@ -309,12 +317,16 @@ export default function RecommendationsPage() {
 
   const getRecommendations = async () => {
     if (selectedGames.length === 0 && selectedGenres.length === 0) {
-      setError('Please select at least one game or genre to get recommendations')
+      const errorMsg = 'Please select at least one game or genre to get recommendations'
+      setError(errorMsg)
+      toast.error(errorMsg)
       return
     }
 
     if (selectedGames.length === 0) {
-      setError('Please select at least one game to get recommendations.')
+      const errorMsg = 'Please select at least one game to get recommendations.'
+      setError(errorMsg)
+      toast.error(errorMsg)
       return
     }
 
@@ -387,12 +399,33 @@ export default function RecommendationsPage() {
       
       setRecommendations(processedData)
       setShowResultsModal(true)
+      toast.success(`Found ${processedData.count} game recommendations!`)
     } catch (err) {
       console.error('Recommendation error:', err)
-      setError(err instanceof Error ? err.message : 'Failed to get recommendations')
+      const errorMsg = err instanceof Error ? err.message : 'Failed to get recommendations'
+      setError(errorMsg)
+      toast.error(errorMsg)
       setRecommendations(null)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Handle adding game to library
+  const handleAddToLibrary = async (gameId: number, status: 'backlog' | 'playing' | 'completed' | 'dropped' = 'backlog') => {
+    try {
+      // Find the game in the recommendations
+      const game = recommendations?.recommendations?.find(g => g.id === gameId)
+      if (!game) {
+        toast.error('Game not found')
+        return
+      }
+
+      await addGameToLibrary(game, status, 0)
+      toast.success(`"${game.name}" added to your library!`)
+    } catch (error) {
+      console.error('Error adding to library:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to add game to library')
     }
   }
 
@@ -649,34 +682,35 @@ export default function RecommendationsPage() {
                 </div>
               </div>
               <div className="text-center py-6">
-                <div className="text-emerald-400 text-3xl mb-2">*</div>
                 {recommendations ? (
-                  <Button
-                    onClick={() => setShowResultsModal(true)}
-                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-6 py-2 rounded-lg w-full mb-2"
-                  >
-                    View Results! ({allGames.length} games)
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      onClick={() => setShowResultsModal(true)}
+                      className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-6 py-2 rounded-lg"
+                    >
+                      View Results!
+                    </Button>
+                    <div>
+                      <Button
+                        onClick={() => {
+                          setRecommendations(null)
+                          setShowResultsModal(false)
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs text-zinc-400 border-zinc-600 hover:bg-zinc-800"
+                      >
+                        Start New Search
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <Button
                     onClick={getRecommendations}
                     disabled={loading || selectedGames.length === 0}
-                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-6 py-2 rounded-lg w-full"
+                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-6 py-2 rounded-lg"
                   >
                     {loading ? 'Analyzing...' : 'Find Games!'}
-                  </Button>
-                )}
-                {recommendations && (
-                  <Button
-                    onClick={() => {
-                      setRecommendations(null)
-                      setShowResultsModal(false)
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs text-zinc-400 border-zinc-600 hover:bg-zinc-800 mt-2"
-                  >
-                    Start New Search
                   </Button>
                 )}
               </div>
@@ -1178,7 +1212,7 @@ export default function RecommendationsPage() {
                         }))} 
                         title=""
                         onAddToLibrary={(gameId: number, status = 'backlog') => {
-                          console.log('Add to Library:', gameId, 'with status:', status)
+                          handleAddToLibrary(gameId, status)
                         }}
                         onMoreInfo={(gameId: number) => console.log('More info:', gameId)}
                       />
