@@ -342,7 +342,7 @@ export function HeaderSearch() {
               <span className="font-semibold tracking-tight">PlayMatch</span>
             </button>
             <NavItem href="/home">Home</NavItem>
-            <NavItem href="/recommendations">Recommendations</NavItem>
+            <NavItem href="/recommendations">Find Your Match!</NavItem>
             <NavItem href="/library">Library</NavItem>
 
             {/* inline search input inside the pill */}
