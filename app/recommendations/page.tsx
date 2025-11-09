@@ -89,7 +89,7 @@ export default function RecommendationsPage() {
   ]
 
   const themes = [
-    'Action', 'Adventure', 'Comedy', 'Drama', 'Educational', 'Erotic', 'Fantasy',
+    'Action', 'Adventure', 'Comedy', 'Drama', 'Educational', 'Fantasy',
     'Historical', 'Horror', 'Kids', 'Mystery', 'Non-fiction', 'Open World',
     'Party', 'Romance', 'Sandbox', 'Science Fiction', 'Stealth', 'Survival',
     'Thriller', 'Warfare', 'Western'
