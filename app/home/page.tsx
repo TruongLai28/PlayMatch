@@ -52,8 +52,35 @@ export default function HomePage() {
   const [popularGames, setPopularGames] = useState<Game[]>([])
   const [newReleases, setNewReleases] = useState<Game[]>([])
   const [recommendations, setRecommendations] = useState<Game[]>([])
+  const [personalizedRecs, setPersonalizedRecs] = useState<Game[]>([])
+  const [gamerProfile, setGamerProfile] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Load personalized recommendations from localStorage
+  useEffect(() => {
+    const savedRecs = localStorage.getItem('playMatchRecommendations')
+    
+    if (savedRecs) {
+      try {
+        const data = JSON.parse(savedRecs)
+        
+        // Check if recommendations are still fresh (< 7 days old)
+        const isStale = Date.now() - data.timestamp > 7 * 24 * 60 * 60 * 1000
+        
+        if (!isStale && data.games && data.games.length > 0) {
+          setPersonalizedRecs(data.games)
+          setGamerProfile(data.gamerProfile)
+        } else {
+          // Clear stale data
+          localStorage.removeItem('playMatchRecommendations')
+        }
+      } catch (e) {
+        console.error('Error loading saved recommendations:', e)
+        localStorage.removeItem('playMatchRecommendations')
+      }
+    }
+  }, [])
 
   useEffect(() => {
     fetchHomePageData()
@@ -99,7 +126,7 @@ export default function HomePage() {
   // Handle adding game to library
   const handleAddToLibrary = async (gameId: number, status: 'backlog' | 'playing' | 'completed' | 'dropped' = 'backlog', hoursPlayed: number = 0) => {
     try {
-      const allGames = [...popularGames, ...newReleases, ...recommendations]
+      const allGames = [...popularGames, ...newReleases, ...recommendations, ...personalizedRecs]
       const game = allGames.find(g => g.id === gameId)
       if (!game) {
         toast.error('Game not found')
@@ -147,14 +174,41 @@ export default function HomePage() {
   }
 
   // Create slideshow games array from different categories
+  // Helper function to extract franchise/series name from game name
+  const getFranchiseName = (gameName: string): string => {
+    // Extract potential franchise name (before subtitle, number, or colon)
+    const franchise = gameName.split(/[:\-–]/)[0]
+      .replace(/\d+/g, '') // Remove numbers
+      .replace(/\b(I{1,3}|IV|V|VI{0,3}|IX|X)\b/g, '') // Remove Roman numerals
+      .replace(/\b(the|a|an)\b/gi, '') // Remove articles
+      .trim()
+      .toLowerCase()
+    return franchise || gameName.toLowerCase()
+  }
+
   const slideshowGames = [
-    ...popularGames.slice(0, 3), // Top 3 popular games
-    ...newReleases.slice(0, 2),  // Top 2 new releases
-    ...recommendations.slice(0, 2) // Top 2 recommendations
-  ].filter((game, index, self) => 
-    // Remove duplicates based on game ID
-    index === self.findIndex(g => g.id === game.id)
-  ).slice(0, 5) // Limit to 5 slides max
+    ...popularGames.slice(0, 5),
+    ...newReleases.slice(0, 5),
+    ...recommendations.slice(0, 5)
+  ]
+    .filter((game, index, self) => 
+      // Remove duplicates based on game ID
+      index === self.findIndex(g => g.id === game.id)
+    )
+    .reduce((uniqueGames: Game[], currentGame) => {
+      // Check if we already have a game from this franchise
+      const franchise = getFranchiseName(currentGame.name)
+      const hasSameFranchise = uniqueGames.some(g => 
+        getFranchiseName(g.name) === franchise
+      )
+      
+      if (!hasSameFranchise) {
+        uniqueGames.push(currentGame)
+      }
+      
+      return uniqueGames
+    }, [])
+    .slice(0, 5) // Limit to 5 slides max
 
   return (
     <>
@@ -321,16 +375,51 @@ export default function HomePage() {
      
         {/* Game Rows */}
   <div className="space-y-16 mt-8 mb-16 relative z-10 overflow-visible" style={{ position: 'relative', zIndex: 10 }}>
+        
+        {/* Personalized Recommendations from Rec Engine */}
+        {personalizedRecs.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-6">
+              <div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-[#5d4af8] bg-clip-text text-transparent">
+                  Your Personalized Recommendations
+                </h2>
+                {gamerProfile && (
+                  <p className="text-[#5d4af8] text-sm font-medium mt-1">
+                    Based on your {gamerProfile} profile
+                  </p>
+                )}
+              </div>
+              <Button
+                onClick={() => window.location.href = '/recommendations'}
+                size="sm"
+                className="bg-gradient-to-r from-purple-600 to-[#5d4af8] hover:from-purple-700 hover:to-[#4a3ad6] text-white rounded-full"
+              >
+                Get New Recommendations
+              </Button>
+            </div>
+            <GameRow 
+              title="" 
+              games={personalizedRecs}
+              loading={false}
+              onAddToLibrary={(gameId, status = 'backlog') => {
+                handleAddToLibrary(gameId, status)
+              }}
+              onMoreInfo={(gameId) => console.log('More info:', gameId)}
+            />
+          </div>
+        )}
+        
         <GameRow 
-          title="Recommended for You" 
-          games={recommendations}
+          title="New Releases" 
+          games={newReleases}
           loading={false}
           onAddToLibrary={(gameId, status = 'backlog') => {
             handleAddToLibrary(gameId, status)
           }}
           onMoreInfo={(gameId) => console.log('More info:', gameId)}
         />
-       
+        
         <GameRow 
           title="Popular Games" 
           games={popularGames}
@@ -340,10 +429,10 @@ export default function HomePage() {
           }}
           onMoreInfo={(gameId) => console.log('More info:', gameId)}
         />
-       
+        
         <GameRow 
-          title="New Releases" 
-          games={newReleases}
+          title="Random Recommendations" 
+          games={recommendations}
           loading={false}
           onAddToLibrary={(gameId, status = 'backlog') => {
             handleAddToLibrary(gameId, status)

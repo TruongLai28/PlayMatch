@@ -49,17 +49,46 @@ export default function HomePage() {
     fetchFeaturedGames()
   }, [])
 
+  // Helper function to extract franchise/series name from game name
+  const getFranchiseName = (gameName: string): string => {
+    // Extract potential franchise name (before subtitle, number, or colon)
+    const franchise = gameName.split(/[:\-–]/)[0]
+      .replace(/\d+/g, '') // Remove numbers
+      .replace(/\b(I{1,3}|IV|V|VI{0,3}|IX|X)\b/g, '') // Remove Roman numerals
+      .replace(/\b(the|a|an)\b/gi, '') // Remove articles
+      .trim()
+      .toLowerCase()
+    return franchise || gameName.toLowerCase()
+  }
+
   const fetchFeaturedGames = async () => {
     try {
       console.log('Fetching featured games...')
-      const response = await fetch('/api/games/popular?limit=6')
+      // Fetch more games initially to ensure we have enough after franchise filtering
+      const response = await fetch('/api/games/popular?limit=20')
       console.log('API Response status:', response.status)
       
       if (response.ok) {
         const games = await response.json()
         console.log('Games received:', games)
         console.log('Number of games:', games?.length)
-        setFeaturedGames(games || [])
+        
+        // Filter to only include one game per franchise
+        const uniqueFranchiseGames = (games || []).reduce((uniqueGames: Game[], currentGame: Game) => {
+          const franchise = getFranchiseName(currentGame.name)
+          const hasSameFranchise = uniqueGames.some(g => 
+            getFranchiseName(g.name) === franchise
+          )
+          
+          if (!hasSameFranchise) {
+            uniqueGames.push(currentGame)
+          }
+          
+          return uniqueGames
+        }, []).slice(0, 6) // Limit to 6 unique franchise games
+        
+        console.log('Unique franchise games:', uniqueFranchiseGames.length)
+        setFeaturedGames(uniqueFranchiseGames)
       } else {
         console.error('API Response not ok:', response.status, response.statusText)
       }

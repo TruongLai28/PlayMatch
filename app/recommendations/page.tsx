@@ -383,6 +383,21 @@ export default function RecommendationsPage() {
       
       setRecommendations(processedData)
       setShowResultsModal(true)
+      
+      // Save to localStorage for home page
+      const recommendationData = {
+        games: processedData.recommendations,
+        timestamp: Date.now(),
+        gamerProfile: gamerProfile,
+        count: processedData.count,
+        preferences: {
+          genres: selectedGenres,
+          themes: selectedThemes,
+          platforms: selectedPlatforms
+        }
+      }
+      localStorage.setItem('playMatchRecommendations', JSON.stringify(recommendationData))
+      
       toast.success(`Found ${processedData.count} game recommendations!`)
     } catch (err) {
       console.error('Recommendation error:', err)

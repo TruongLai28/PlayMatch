@@ -22,7 +22,12 @@ export function Footer() {
               Discover your next favorite game with personalized recommendations powered by advanced algorithms.
             </p>
             <div className="flex space-x-3">
-              <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-white hover:bg-zinc-800">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+                onClick={() => window.open('https://github.com/TruongLai28/PlayMatch', '_blank')}
+              >
                 <Github className="h-5 w-5" />
               </Button>
             </div>
@@ -50,6 +55,11 @@ export function Footer() {
               <li>
                 <a href="/browse" className="text-zinc-400 hover:text-white text-sm transition-colors">
                   Browse Games
+                </a>
+              </li>
+              <li>
+                <a href="/browse" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                  Our Team
                 </a>
               </li>
             </ul>
