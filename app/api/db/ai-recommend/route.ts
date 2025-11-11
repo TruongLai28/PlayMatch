@@ -1,75 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { pipeline } from '@xenova/transformers'
 import pkg from 'pg'
 const { Client } = pkg
 
-// Initialize the embedding model (shared with auto-sync)
-let generateEmbedding: any = null
+// Use Hugging Face Inference API instead of local transformer
+async function generateEmbedding(text: string) {
+  const response = await fetch(
+    'https://api-inference.huggingface.co/models/Supabase/gte-small',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ inputs: text }),
+    }
+  )
 
-async function getEmbeddingModel() {
-  if (!generateEmbedding) {
-    console.log('Loading embedding model...')
-    generateEmbedding = await pipeline('feature-extraction', 'Supabase/gte-small')
-    console.log('Embedding model loaded!')
+  if (!response.ok) {
+    throw new Error(`HF API error: ${response.statusText}`)
   }
-  return generateEmbedding
+
+  const result = await response.json()
+  return result
 }
 
-/**
- * @swagger
- * /api/db/ai-recommend:
- *   post:
- *     tags:
- *       - AI Recommendations
- *     summary: Get game recommendations using vector similarity search
- *     description: Finds similar games based on user preferences using AI embeddings
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               gameIds:
- *                 type: array
- *                 items:
- *                   type: number
- *                 description: Array of game IDs the user likes
- *               genres:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Preferred genres
- *               themes:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Preferred themes
- *               keywords:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Keywords to search for
- *               platforms:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Preferred platforms
- *               limit:
- *                 type: number
- *                 description: Number of recommendations to return (default 10)
- *               minRating:
- *                 type: number
- *                 description: Minimum game rating (default 70)
- *     responses:
- *       200:
- *         description: Recommendations generated successfully
- *       400:
- *         description: Invalid request
- *       500:
- *         description: Recommendation generation failed
- */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -85,9 +39,8 @@ export async function POST(request: NextRequest) {
 
     console.log('Generating recommendations with:', { gameIds, genres, themes, keywords, platforms, limit, minRating })
 
-    // Build a query description from user preferences
+    // Build query description
     const queryParts = []
-    
     if (genres.length > 0 && genres[0]) queryParts.push(`genres: ${genres.join(', ')}`)
     if (themes.length > 0 && themes[0]) queryParts.push(`themes: ${themes.join(', ')}`)
     if (keywords.length > 0 && keywords[0]) queryParts.push(`keywords: ${keywords.join(', ')}`)
@@ -99,16 +52,11 @@ export async function POST(request: NextRequest) {
 
     console.log('Query text:', queryText)
 
-    // Generate embedding for the query
-    const embeddingModel = await getEmbeddingModel()
-    const output = await embeddingModel(queryText, {
-      pooling: 'mean',
-      normalize: true,
-    })
-    const queryEmbedding = Array.from(output.data)
+    // Generate embedding using HuggingFace API
+    const queryEmbedding = await generateEmbedding(queryText)
     console.log('Generated embedding with', queryEmbedding.length, 'dimensions')
 
-    // Connect to database for vector search
+    // Rest of your code stays the same...
     const client = new Client({
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false }
@@ -117,14 +65,12 @@ export async function POST(request: NextRequest) {
     await client.connect()
 
     try {
-      // First, check how many games have embeddings
       const countResult = await client.query(
         'SELECT COUNT(*) as total, COUNT(embedding) as with_embeddings FROM games WHERE rating >= $1',
         [minRating]
       )
       console.log('Games in database:', countResult.rows[0])
 
-      // Simplified SQL query - remove strict JSONB filters, rely on vector similarity
       let sqlQuery = `
         SELECT 
           id,
@@ -144,34 +90,27 @@ export async function POST(request: NextRequest) {
       const params: any[] = [JSON.stringify(queryEmbedding)]
       let paramIndex = 2
 
-      // Add minimum rating filter
       if (minRating > 0) {
         sqlQuery += ` AND rating >= $${paramIndex}`
         params.push(minRating)
         paramIndex++
       }
 
-      // Exclude games the user already likes
       if (gameIds.length > 0 && gameIds[0] !== 0) {
         sqlQuery += ` AND id != ALL($${paramIndex}::int[])`
         params.push(gameIds)
         paramIndex++
       }
 
-      // Order by similarity and limit
       sqlQuery += `
         ORDER BY embedding <=> $1::vector ASC
         LIMIT $${paramIndex}
       `
       params.push(Math.max(limit, 1))
 
-      console.log('Executing vector search with params:', params.length - 1, 'filters')
-      console.log('SQL:', sqlQuery)
+      console.log('Executing vector search')
       const result = await client.query(sqlQuery, params)
 
-      console.log(`Found ${result.rows.length} recommendations`)
-
-      // Transform results to match frontend format
       const recommendations = result.rows.map(game => ({
         ...game,
         cover: game.cover_url ? { url: game.cover_url } : undefined,
