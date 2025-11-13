@@ -57,11 +57,7 @@ export function Footer() {
                   Browse Games
                 </a>
               </li>
-              <li>
-                <a href="/browse" className="text-zinc-400 hover:text-white text-sm transition-colors">
-                  Our Team
-                </a>
-              </li>
+
             </ul>
           </div>
 
@@ -107,17 +103,7 @@ export function Footer() {
           <div className="text-zinc-400 text-sm">
             © {currentYear} PlayMatch. All rights reserved.
           </div>
-            <div className="flex space-x-4 mt-3 md:mt-0">
-            <a href="#" className="text-zinc-400 hover:text-white text-sm transition-colors">
-              Privacy
-            </a>
-            <a href="#" className="text-zinc-400 hover:text-white text-sm transition-colors">
-              Terms
-            </a>
-            <a href="#" className="text-zinc-400 hover:text-white text-sm transition-colors">
-              Cookies
-            </a>
-          </div>
+          
         </div>
       </div>
     </footer>
