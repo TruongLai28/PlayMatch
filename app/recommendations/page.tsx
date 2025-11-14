@@ -377,6 +377,59 @@ function RecommendationsContent() {
             removeGame={removeGame}
           />
         )}
+        {recommendations && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  🎮 Your Recommendations
+                </h2>
+                {gamerProfile && (
+                  <p className="text-zinc-400">
+                    Profile: <span className="text-purple-400 font-semibold">{gamerProfile}</span>
+                  </p>
+                )}
+                <p className="text-zinc-500 text-sm">
+                  Found {recommendations.count} games matching your preferences
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                  className="border-zinc-700"
+                >
+                  {viewMode === 'grid' ? <List className="h-4 w-4" /> : <Grid3x3 className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setRecommendations(null)
+                    setShowResultsModal(false)
+                  }}
+                  className="border-zinc-700"
+                >
+                  New Search
+                </Button>
+              </div>
+            </div>
+
+            {/* Games Grid */}
+            {recommendations.recommendations && recommendations.recommendations.length > 0 ? (
+              <GameGrid 
+                games={recommendations.recommendations}
+                onAddToLibrary={handleAddToLibrary}
+              />
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-zinc-400">No recommendations found. Try adjusting your preferences.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

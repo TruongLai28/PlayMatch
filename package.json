@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@huggingface/inference": "^4.13.2",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -31,6 +32,7 @@
     "lucide-react": "^0.544.0",
     "next": "15.5.2",
     "next-swagger-doc": "^0.3.6",
+    "ollama": "^0.6.3",
     "pg": "^8.16.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",

@@ -25,55 +25,84 @@ export interface LibraryEntry {
   }
 }
 
+// Global singleton to prevent multiple simultaneous fetches across all hook instances
+let globalFetchPromise: Promise<any> | null = null
+let globalLibraryCache: LibraryEntry[] | null = null
+let globalLibraryLoaded = false
+
 export function useLibrary(autoLoad: boolean = true) {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
-  const [library, setLibrary] = useState<LibraryEntry[]>([])
-  const [libraryLoaded, setLibraryLoaded] = useState(false)
+  const [library, setLibrary] = useState<LibraryEntry[]>(globalLibraryCache || [])
+  const [libraryLoaded, setLibraryLoaded] = useState(globalLibraryLoaded)
   const [lazyLoadRequested, setLazyLoadRequested] = useState(false)
 
-  // Fetch user's library
+  // Fetch user's library with global deduplication
   const fetchLibrary = useCallback(async () => {
     if (!user) {
       setLibrary([])
       setLibraryLoaded(true)
+      globalLibraryCache = []
+      globalLibraryLoaded = true
       return
     }
 
-    try {
-      setIsLoading(true)
-      const response = await fetch('/api/db/user-library', {
-        method: 'GET',
-        credentials: 'include'
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch library')
-      }
-
-      const data = await response.json()
-      setLibrary(data.library || [])
-      setLibraryLoaded(true)
-    } catch (error) {
-      console.error('Error fetching library:', error)
-      setLibrary([])
-      setLibraryLoaded(true)
-    } finally {
-      setIsLoading(false)
+    // If already loading globally, return the existing promise
+    if (globalFetchPromise) {
+      return globalFetchPromise
     }
+
+    const promise = (async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/db/user-library', {
+          method: 'GET',
+          credentials: 'include'
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch library')
+        }
+
+        const data = await response.json()
+        const libraryData = data.library || []
+        
+        // Update global cache
+        globalLibraryCache = libraryData
+        globalLibraryLoaded = true
+        
+        setLibrary(libraryData)
+        setLibraryLoaded(true)
+      } catch (error) {
+        console.error('Error fetching library:', error)
+        setLibrary([])
+        setLibraryLoaded(true)
+        globalLibraryCache = []
+        globalLibraryLoaded = true
+      } finally {
+        setIsLoading(false)
+        globalFetchPromise = null
+      }
+    })()
+
+    globalFetchPromise = promise
+    return promise
   }, [user])
 
   // Check if a game is in the library and return its status
   const getGameStatus = useCallback((gameId: number) => {
+    // Use global cache if available
+    const cachedLibrary = globalLibraryCache || library
+    
     // If library hasn't been loaded yet and autoLoad is false, request lazy loading once
-    if (!libraryLoaded && !isLoading && !autoLoad && !lazyLoadRequested) {
+    if (!globalLibraryLoaded && !globalFetchPromise && !autoLoad && !lazyLoadRequested) {
       setLazyLoadRequested(true)
       fetchLibrary()
     }
     
-    const entry = library.find(item => item.gameId === gameId)
+    const entry = cachedLibrary.find(item => item.gameId === gameId)
     return entry?.status || null
-  }, [library, libraryLoaded, isLoading, autoLoad, lazyLoadRequested, fetchLibrary])
+  }, [library, autoLoad, lazyLoadRequested, fetchLibrary])
 
   // Load library when user changes - but only if autoLoad is true
   useEffect(() => {
