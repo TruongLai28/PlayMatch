@@ -135,30 +135,30 @@ export function HeroSection({ games }: HeroSectionProps) {
   }
 
   return (
-    <div className="w-full px-6">
-      <div className="relative max-w-[1600px] mx-auto h-[60vh] md:h-[72vh] lg:h-[68vh] overflow-hidden rounded-xl border-2 border-sidebar-border shadow-lg shadow-[hsl(var(--sidebar-border))] bg-gradient-to-r from-transparent to-sidebar-accent/10">
+    <div className="w-full px-2 sm:px-4 md:px-6">
+      <div className="relative max-w-[1600px] mx-auto h-[45vh] sm:h-[50vh] md:h-[60vh] lg:h-[68vh] overflow-hidden rounded-lg sm:rounded-xl border-2 border-sidebar-border shadow-lg shadow-[hsl(var(--sidebar-border))] bg-gradient-to-r from-transparent to-sidebar-accent/10">
         <div className={`grid grid-cols-1 md:grid-cols-2 h-full transition-opacity duration-300 ${
           isTransitioning ? 'opacity-50' : 'opacity-100'
         }`}>
         {/* Left: Text content */}
-        <div className="relative z-10 flex items-center p-6 md:p-10 lg:p-12">
-          <div className="max-w-xl space-y-4">
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white">
+        <div className="relative z-10 flex items-center p-3 sm:p-4 md:p-6 lg:p-8 xl:p-12">
+          <div className="max-w-xl space-y-2 sm:space-y-3 md:space-y-4">
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight">
               {currentGame.name}
             </h1>
 
-            <div className="flex items-center space-x-3 text-sm md:text-base">
+            <div className="flex items-center flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm md:text-base">
               {currentGame.rating && (
-                <span className="bg-yellow-500 text-black px-2 py-1 rounded font-bold">
+                <span className="bg-yellow-500 text-black px-2 py-1 rounded font-bold text-xs sm:text-sm">
                   {Math.round(currentGame.rating / 10)}/10
                 </span>
               )}
               {currentGame.genres && currentGame.genres.length > 0 && (
-                <div className="flex space-x-2">
-                  {currentGame.genres.slice(0, 3).map((genre, index) => (
-                    <span key={genre.id || index} className="text-gray-300">
+                <div className="flex flex-wrap gap-1 sm:gap-2">
+                  {currentGame.genres.slice(0, 2).map((genre, index) => (
+                    <span key={genre.id || index} className="text-gray-300 text-xs sm:text-sm">
                       {genre.name}
-                      {index < Math.min(currentGame.genres!.length, 3) - 1 && ' •'}
+                      {index < Math.min(currentGame.genres!.length, 2) - 1 && ' •'}
                     </span>
                   ))}
                 </div>
@@ -166,17 +166,17 @@ export function HeroSection({ games }: HeroSectionProps) {
             </div>
 
             {currentGame.summary && (
-              <p className="text-base md:text-lg text-gray-300 max-w-xl line-clamp-4">
+              <p className="text-sm sm:text-base md:text-lg text-gray-300 max-w-xl line-clamp-3 md:line-clamp-4 leading-relaxed">
                 {currentGame.summary}
               </p>
             )}
 
-            <div className="flex space-x-4 pt-3">
+            <div className="flex space-x-2 sm:space-x-4 pt-2 sm:pt-3">
               <button 
                 onClick={() => handleMoreInfo(currentGame)}
-                className="bg-gray-600/70 text-white px-4 py-2 rounded flex items-center space-x-2 hover:bg-gray-600 transition-colors"
+                className="bg-gray-600/70 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded flex items-center space-x-1 sm:space-x-2 hover:bg-gray-600 transition-colors text-sm sm:text-base"
               >
-                <Info size={18} />
+                <Info size={16} className="sm:w-[18px] sm:h-[18px]" />
                 <span>More Info</span>
               </button>
             </div>
@@ -202,26 +202,26 @@ export function HeroSection({ games }: HeroSectionProps) {
           <button
             onClick={goToPrevious}
             disabled={isTransitioning}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
+            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 text-white p-1.5 sm:p-2 rounded-full transition-colors disabled:opacity-50"
           >
-            <ChevronLeft size={24} />
+            <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
           </button>
           
           <button
             onClick={goToNext}
             disabled={isTransitioning}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 text-white p-1.5 sm:p-2 rounded-full transition-colors disabled:opacity-50"
           >
-            <ChevronRight size={24} />
+            <ChevronRight size={20} className="sm:w-6 sm:h-6" />
           </button>
 
           {/* Slide Indicators */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex space-x-2">
+          <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex space-x-1.5 sm:space-x-2">
             {games.map((_, index) => (
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-200 ${
                   index === currentSlide
                     ? 'bg-white scale-110'
                     : 'bg-white/50 hover:bg-white/70'
@@ -233,14 +233,14 @@ export function HeroSection({ games }: HeroSectionProps) {
           {/* Play/Pause Button */}
           <button
             onClick={toggleAutoPlay}
-            className="absolute top-4 right-4 z-20 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+            className="absolute top-2 sm:top-4 right-2 sm:right-4 z-20 bg-black/50 hover:bg-black/70 text-white p-1.5 sm:p-2 rounded-full transition-colors"
           >
-            {isAutoPlaying ? <Pause size={20} /> : <Play size={20} />}
+            {isAutoPlaying ? <Pause size={16} className="sm:w-5 sm:h-5" /> : <Play size={16} className="sm:w-5 sm:h-5" />}
           </button>
 
           {/* Progress Bar */}
           {isAutoPlaying && (
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 bg-black/30">
               <div 
                 className="h-full bg-purple-700 animate-pulse"
                 style={{ 

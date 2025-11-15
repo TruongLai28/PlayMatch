@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { GameGrid } from '@/features/game'
+import { ExpandedGameCard } from '@/features/game/components/ExpandedGameCard'
 import { Button } from '@/components/ui/button'
 import { Sparkles, X, TrendingUp, Grid3x3, List } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
@@ -100,6 +101,7 @@ function RecommendationsContent() {
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1)
   const [showResultsModal, setShowResultsModal] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [selectedGameForModal, setSelectedGameForModal] = useState<Game | null>(null)
 
   const generateGamerProfile = () => {
     const profiles: Record<string, { title: string; description: string; icon: string }> = {
@@ -323,6 +325,19 @@ function RecommendationsContent() {
     }
   }
 
+  const handleMoreInfo = (gameId: number) => {
+    const game = recommendations?.recommendations?.find(g => g.id === gameId)
+    if (game) {
+      setSelectedGameForModal(game)
+    }
+  }
+
+  const handleModalAddToLibrary = (status: 'backlog' | 'playing' | 'completed' | 'dropped') => {
+    if (selectedGameForModal) {
+      handleAddToLibrary(selectedGameForModal.id, status)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
@@ -331,11 +346,11 @@ function RecommendationsContent() {
         <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-4000" />
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-12 relative z-10">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4 px-6 py-3 rounded-2xl border border-[#5d4af8]/30 bg-zinc-900/50 shadow-[0_0_20px_rgba(93,74,248,0.3)]">
-            <Sparkles className="h-5 w-5 text-[#5d4af8] animate-pulse" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-[#5d4af8] bg-clip-text text-transparent">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-12 relative z-10">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex items-center gap-2 sm:gap-3 mb-4 px-4 sm:px-6 py-2 sm:py-3 rounded-2xl border border-[#5d4af8]/30 bg-zinc-900/50 shadow-[0_0_20px_rgba(93,74,248,0.3)]">
+            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-[#5d4af8] animate-pulse" />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-400 to-[#5d4af8] bg-clip-text text-transparent">
               Find Your Perfect Games
             </h1>
           </div>
@@ -378,19 +393,19 @@ function RecommendationsContent() {
           />
         )}
         {recommendations && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-white mb-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
                   🎮 Your Recommendations
                 </h2>
                 {gamerProfile && (
-                  <p className="text-zinc-400">
+                  <p className="text-zinc-400 text-sm sm:text-base">
                     Profile: <span className="text-purple-400 font-semibold">{gamerProfile}</span>
                   </p>
                 )}
-                <p className="text-zinc-500 text-sm">
+                <p className="text-zinc-500 text-xs sm:text-sm">
                   Found {recommendations.count} games matching your preferences
                 </p>
               </div>
@@ -421,7 +436,9 @@ function RecommendationsContent() {
             {recommendations.recommendations && recommendations.recommendations.length > 0 ? (
               <GameGrid 
                 games={recommendations.recommendations}
+                viewMode={viewMode}
                 onAddToLibrary={handleAddToLibrary}
+                onMoreInfo={handleMoreInfo}
               />
             ) : (
               <div className="text-center py-12">
@@ -429,6 +446,16 @@ function RecommendationsContent() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Expanded Game Card Modal */}
+        {selectedGameForModal && (
+          <ExpandedGameCard
+            game={selectedGameForModal}
+            isOpen={!!selectedGameForModal}
+            onClose={() => setSelectedGameForModal(null)}
+            onAddToLibrary={handleModalAddToLibrary}
+          />
         )}
       </div>
     </div>

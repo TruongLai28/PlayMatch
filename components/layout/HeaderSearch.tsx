@@ -320,7 +320,7 @@ export function HeaderSearch() {
       return (
         <button
           onClick={() => router.push(href)}
-          className={`px-3 py-1 rounded-full text-sm transition-colors duration-150 ${isActive ? 'bg-[#5d4af8] text-white font-semibold' : 'text-[#a0a0b0] hover:bg-[#5d4af8]/10'} focus:outline-none focus:ring-0`}
+          className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm transition-colors duration-150 ${isActive ? 'bg-[#5d4af8] text-white font-semibold' : 'text-[#a0a0b0] hover:bg-[#5d4af8]/10'} focus:outline-none focus:ring-0`}
           aria-current={isActive ? 'page' : undefined}
         >
           {children}
@@ -331,42 +331,45 @@ export function HeaderSearch() {
     return (
       <div className="flex w-full items-center">
         <div className="mx-auto">
-          <nav className="inline-flex items-center gap-2 text-sm rounded-full px-2 py-1 bg-[#5d4af8]/15 backdrop-blur-md shadow-sm">
+          <nav className="inline-flex items-center gap-1 sm:gap-2 text-sm rounded-full px-1.5 sm:px-2 py-1 bg-[#5d4af8]/15 backdrop-blur-md shadow-sm">
             {/* Brand inside the pill */}
             <button
               onClick={() => router.push('/')}
-              className="mr-1 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-sm text-[#e6e6ff] hover:bg-[#5d4af8]/10 focus:outline-none focus:ring-0"
+              className="mr-0.5 sm:mr-1 inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 rounded-full text-xs sm:text-sm text-[#e6e6ff] hover:bg-[#5d4af8]/10 focus:outline-none focus:ring-0"
               aria-label="PlayMatch Home"
             >
-              <Gamepad2 className="h-4 w-4 text-[#cfd6ff]" />
-              <span className="font-semibold tracking-tight">PlayMatch</span>
+              <Gamepad2 className="h-3 w-3 sm:h-4 sm:w-4 text-[#cfd6ff]" />
+              <span className="font-semibold tracking-tight hidden sm:inline">PlayMatch</span>
             </button>
             <NavItem href="/home">Home</NavItem>
-            <NavItem href="/recommendations">Find Your Match!</NavItem>
+            <NavItem href="/recommendations">
+              <span className="hidden sm:inline">Find Your Match!</span>
+              <span className="sm:hidden">Match!</span>
+            </NavItem>
             <NavItem href="/library">Library</NavItem>
 
             {/* inline search input inside the pill */}
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="ml-1 p-1 rounded-full bg-transparent hover:bg-[#5d4af8]/10 focus:outline-none focus:ring-0"
+              className="ml-0.5 sm:ml-1 p-0.5 sm:p-1 rounded-full bg-transparent hover:bg-[#5d4af8]/10 focus:outline-none focus:ring-0"
               aria-label="Search"
             >
-              <Search className="h-5 w-5 text-[#cfd6ff]" />
+              <Search className="h-4 w-4 sm:h-5 sm:w-5 text-[#cfd6ff]" />
             </button>
 
 
             {/* Profile icon inside the pill */}
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="ml-1 p-1 rounded-full bg-transparent hover:bg-[#5d4af8]/10 focus:outline-none focus:ring-0"
+              className="ml-0.5 sm:ml-1 p-0.5 sm:p-1 rounded-full bg-transparent hover:bg-[#5d4af8]/10 focus:outline-none focus:ring-0"
               aria-label="Profile"
             >
-              <User className="h-5 w-5 text-[#cfd6ff]" />
+              <User className="h-4 w-4 sm:h-5 sm:w-5 text-[#cfd6ff]" />
             </button>
           </nav>
           {/* Search Modal Overlay (UI only, no functional search) */}
           {isSearchOpen && (
-            <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-6">
+            <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 md:p-6">
               {/* Backdrop */}
               <div
                 className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -374,23 +377,23 @@ export function HeaderSearch() {
                 aria-hidden="true"
               />
               {/* Modal Panel */}
-              <div className="relative w-full max-w-5xl rounded-2xl border border-[#5d4af8]/30 bg-zinc-900/50 shadow-[0_0_20px_rgba(93,74,248,0.3)]">
+              <div className="relative w-full max-w-sm sm:max-w-2xl md:max-w-4xl lg:max-w-5xl mt-2 sm:mt-4 md:mt-6 rounded-lg sm:rounded-xl md:rounded-2xl border border-[#5d4af8]/30 bg-zinc-900/50 shadow-[0_0_20px_rgba(93,74,248,0.3)] max-h-[95vh] overflow-y-auto">
                 {/* Close button */}
                 <button
                   onClick={closeSearchModal}
-                  className="absolute right-3 top-3 rounded-full p-2 text-zinc-300 hover:bg-white/10 focus:outline-none"
+                  className="absolute right-2 top-2 sm:right-3 sm:top-3 rounded-full p-1.5 sm:p-2 text-zinc-300 hover:bg-white/10 focus:outline-none z-10"
                   aria-label="Close"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
-                <div className="p-4 sm:p-6">
+                <div className="p-3 sm:p-4 md:p-6">
                   {/* Top search input */}
-                  <div className="mb-4 sm:mb-6">
-                    <div className="flex items-center gap-3 border-b border-white/20 pb-3">
-                      <Search className="h-5 w-5 text-zinc-300" />
+                  <div className="mb-3 sm:mb-4 md:mb-6">
+                    <div className="flex items-center gap-2 sm:gap-3 border-b border-white/20 pb-2 sm:pb-3">
+                      <Search className="h-4 w-4 sm:h-5 sm:w-5 text-zinc-300" />
                       <input
                         type="text"
-                        placeholder="Search games… (Press Enter to see all results)"
+                        placeholder="Search games…"
                         value={modalSearchInput}
                         onChange={(e) => handleModalSearch(e.target.value)}
                         onKeyPress={(e) => {
@@ -398,24 +401,24 @@ export function HeaderSearch() {
                             handleSearchEnter()
                           }
                         }}
-                        className="w-full bg-transparent text-zinc-200 placeholder:text-zinc-400 outline-none"
+                        className="w-full bg-transparent text-sm sm:text-base text-zinc-200 placeholder:text-zinc-400 outline-none"
                       />
                     </div>
                   </div>
 
                   {/* Search Results */}
                   {modalSearchInput && (
-                    <div className="mb-6">
+                    <div className="mb-4 sm:mb-6">
                       {searching ? (
-                        <div className="text-center py-4">
-                          <div className="text-zinc-400">Searching...</div>
+                        <div className="text-center py-3 sm:py-4">
+                          <div className="text-zinc-400 text-sm">Searching...</div>
                         </div>
                       ) : searchResults.length > 0 ? (
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                          <div className="text-zinc-400 text-xs mb-2 px-2">
+                        <div className="space-y-1.5 sm:space-y-2 max-h-48 sm:max-h-60 overflow-y-auto">
+                          <div className="text-zinc-400 text-xs mb-1.5 sm:mb-2 px-1 sm:px-2">
                             Found {searchResults.length} results (showing {Math.min(searchResults.length, 20)})
                             {selectedGenres.length > 0 && (
-                              <span className="ml-2 text-purple-400">
+                              <span className="ml-1 sm:ml-2 text-purple-400">
                                 (filtered by {selectedGenres.length} genre{selectedGenres.length > 1 ? 's' : ''})
                               </span>
                             )}
@@ -427,18 +430,18 @@ export function HeaderSearch() {
                               <button
                                 key={game.id}
                                 onClick={() => selectGame(game)}
-                                className="w-full flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-left"
+                                className="w-full flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-md sm:rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-left"
                               >
-                                <div className="w-10 h-12 flex-shrink-0 flex items-center justify-center">
+                                <div className="w-8 h-10 sm:w-10 sm:h-12 flex-shrink-0 flex items-center justify-center">
                                   {game.cover_url ? (
                                     <img
                                       src={game.cover_url.startsWith('//') ? `https:${game.cover_url}` : game.cover_url}
                                       alt={game.name}
-                                      className="w-10 h-12 object-cover rounded"
+                                      className="w-8 h-10 sm:w-10 sm:h-12 object-cover rounded"
                                       onError={(e) => console.log('Image failed to load:', game.cover_url)}
                                     />
                                   ) : (
-                                    <div className="w-10 h-12 bg-zinc-700 rounded flex items-center justify-center text-zinc-400 text-xs">
+                                    <div className="w-8 h-10 sm:w-10 sm:h-12 bg-zinc-700 rounded flex items-center justify-center text-zinc-400 text-[10px] sm:text-xs leading-tight">
                                       No
                                       <br />
                                       Cover
@@ -446,11 +449,11 @@ export function HeaderSearch() {
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-zinc-200 font-medium truncate">
+                                  <div className="text-zinc-200 font-medium text-sm sm:text-base truncate">
                                     {game.name}
                                   </div>
                                   {game.genres?.length > 0 && (
-                                    <div className="text-zinc-400 text-sm truncate">
+                                    <div className="text-zinc-400 text-xs sm:text-sm truncate">
                                       {game.genres.map((g: any) => g.name).join(', ')}
                                     </div>
                                   )}
@@ -460,8 +463,8 @@ export function HeaderSearch() {
                           })}
                         </div>
                       ) : modalSearchInput.trim() ? (
-                        <div className="text-center py-4">
-                          <div className="text-zinc-400">No games found</div>
+                        <div className="text-center py-3 sm:py-4">
+                          <div className="text-zinc-400 text-sm">No games found</div>
                           {selectedGenres.length === 0 && (
                             <div className="text-zinc-500 text-xs mt-1">
                               Try selecting some genres to refine your search
@@ -469,8 +472,8 @@ export function HeaderSearch() {
                           )}
                         </div>
                       ) : selectedGenres.length > 0 ? (
-                        <div className="text-center py-4">
-                          <div className="text-zinc-400">Enter a search term to find games</div>
+                        <div className="text-center py-3 sm:py-4">
+                          <div className="text-zinc-400 text-sm">Enter a search term to find games</div>
                           <div className="text-zinc-500 text-xs mt-1">
                             Genre filters will be applied to your search
                           </div>
@@ -481,46 +484,46 @@ export function HeaderSearch() {
 
                   {/* Search All Button */}
                   {(modalSearchInput.trim() || selectedGenres.length > 0) && (
-                    <div className="mb-4">
+                    <div className="mb-3 sm:mb-4">
                       <button
                         onClick={handleSearchEnter}
-                        className="w-full bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                        className="w-full bg-[#5d4af8] hover:bg-[#5d4af8]/90 text-white font-medium py-2 px-3 sm:px-4 rounded-md sm:rounded-lg transition-colors text-sm sm:text-base"
                       >
-                        View All Results in Browse Page
+                        View All Results
                       </button>
                     </div>
                   )}
 
                   {/* Active Filters row */}
-                  <div className="mb-3 text-sm text-zinc-300">
+                  <div className="mb-2 sm:mb-3 text-xs sm:text-sm text-zinc-300">
                     Active Filters:
                     {selectedGenres.length === 0 && selectedPlatforms.length === 0 && !selectedYear && minRating === undefined && maxRating === undefined && modalSearchInput.trim() === '' && (
                       <span className="text-zinc-400 ml-1">None</span>
                     )}
                   </div>
-                  <div className="mb-5 flex flex-wrap items-center gap-3">
+                  <div className="mb-3 sm:mb-5 flex flex-wrap items-center gap-1.5 sm:gap-3">
                     {modalSearchInput.trim() && (
-                      <span className="rounded-md bg-blue-600/90 px-3 py-1.5 text-sm text-white">
+                      <span className="rounded-md bg-blue-600/90 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-white">
                         Query: "{modalSearchInput.trim()}"
                       </span>
                     )}
                     {selectedGenres.length > 0 && (
-                      <span className="rounded-md bg-purple-600/90 px-3 py-1.5 text-sm text-white">
+                      <span className="rounded-md bg-purple-600/90 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-white">
                         {selectedGenres.length} Genre{selectedGenres.length > 1 ? 's' : ''}
                       </span>
                     )}
                     {selectedPlatforms.length > 0 && (
-                      <span className="rounded-md bg-emerald-600/90 px-3 py-1.5 text-sm text-white">
+                      <span className="rounded-md bg-emerald-600/90 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-white">
                         {selectedPlatforms.length} Platform{selectedPlatforms.length > 1 ? 's' : ''}
                       </span>
                     )}
                     {selectedYear && (
-                      <span className="rounded-md bg-amber-600/90 px-3 py-1.5 text-sm text-white">
+                      <span className="rounded-md bg-amber-600/90 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-white">
                         Year: {selectedYear}
                       </span>
                     )}
                     {(minRating !== undefined || maxRating !== undefined) && (
-                      <span className="rounded-md bg-rose-600/90 px-3 py-1.5 text-sm text-white">
+                      <span className="rounded-md bg-rose-600/90 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-white">
                         Rating: {minRating ? (minRating / 10).toFixed(1) : '0'}-{maxRating ? (maxRating / 10).toFixed(1) : '10'}
                       </span>
                     )}
@@ -535,7 +538,7 @@ export function HeaderSearch() {
                           setModalSearchInput('')
                           setSearchResults([])
                         }}
-                        className="rounded-md bg-red-600/90 px-3 py-1.5 text-sm text-white hover:bg-red-600"
+                        className="rounded-md bg-red-600/90 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-white hover:bg-red-600"
                       >
                         × Clear All
                       </button>
@@ -543,14 +546,14 @@ export function HeaderSearch() {
                   </div>
 
                   {/* Genres grid (chips) */}
-                  <div className="mb-3 text-sm text-zinc-300">
+                  <div className="mb-2 sm:mb-3 text-xs sm:text-sm text-zinc-300">
                     Filter by Genre {selectedGenres.length > 0 && (
                       <span className="text-xs text-zinc-400">({selectedGenres.length} selected)</span>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {genres.length === 0 && (
-                      <span className="select-none rounded-full bg-white/10 px-3 py-1 text-sm text-zinc-400">Loading genres…</span>
+                      <span className="select-none rounded-full bg-white/10 px-2 sm:px-3 py-1 text-xs sm:text-sm text-zinc-400">Loading genres…</span>
                     )}
                     {genres.map((g) => {
                       const isSelected = selectedGenres.includes(g.id)
@@ -558,7 +561,7 @@ export function HeaderSearch() {
                         <button
                           key={g.id}
                           onClick={() => toggleGenre(g.id)}
-                          className={`rounded-full px-3 py-1 text-sm transition-colors ${
+                          className={`rounded-full px-2 sm:px-3 py-1 text-xs sm:text-sm transition-colors ${
                             isSelected 
                               ? 'bg-[#5d4af8] text-white font-medium' 
                               : 'bg-white/10 text-zinc-200 hover:bg-white/15'
@@ -572,7 +575,7 @@ export function HeaderSearch() {
                   
                   {/* Clear genres button */}
                   {selectedGenres.length > 0 && (
-                    <div className="mt-2 mb-4">
+                    <div className="mt-1.5 sm:mt-2 mb-3 sm:mb-4">
                       <button
                         onClick={() => setSelectedGenres([])}
                         className="text-xs text-zinc-400 hover:text-zinc-300 underline"
@@ -583,12 +586,12 @@ export function HeaderSearch() {
                   )}
 
                   {/* Platform Filters */}
-                  <div className="mb-3 mt-6 text-sm text-zinc-300">
+                  <div className="mb-2 sm:mb-3 mt-4 sm:mt-6 text-xs sm:text-sm text-zinc-300">
                     Filter by Platform {selectedPlatforms.length > 0 && (
                       <span className="text-xs text-zinc-400">({selectedPlatforms.length} selected)</span>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {[
                       { id: 6, name: 'PC' },
                       { id: 48, name: 'PS4' },
@@ -606,7 +609,7 @@ export function HeaderSearch() {
                         <button
                           key={platform.id}
                           onClick={() => togglePlatform(platform.id)}
-                          className={`rounded-full px-3 py-1 text-sm transition-colors ${
+                          className={`rounded-full px-2 sm:px-3 py-1 text-xs sm:text-sm transition-colors ${
                             isSelected 
                               ? 'bg-emerald-600 text-white font-medium' 
                               : 'bg-white/10 text-zinc-200 hover:bg-white/15'
@@ -618,7 +621,7 @@ export function HeaderSearch() {
                     })}
                   </div>
                   {selectedPlatforms.length > 0 && (
-                    <div className="mt-2">
+                    <div className="mt-1.5 sm:mt-2">
                       <button
                         onClick={() => setSelectedPlatforms([])}
                         className="text-xs text-zinc-400 hover:text-zinc-300 underline"
@@ -629,17 +632,17 @@ export function HeaderSearch() {
                   )}
 
                   {/* Year Filter */}
-                  <div className="mb-3 mt-6 text-sm text-zinc-300">
+                  <div className="mb-2 sm:mb-3 mt-4 sm:mt-6 text-xs sm:text-sm text-zinc-300">
                     Filter by Release Year
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {[2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015].map((year) => {
                       const isSelected = selectedYear === year
                       return (
                         <button
                           key={year}
                           onClick={() => setSelectedYear(isSelected ? undefined : year)}
-                          className={`rounded-full px-3 py-1 text-sm transition-colors ${
+                          className={`rounded-full px-2 sm:px-3 py-1 text-xs sm:text-sm transition-colors ${
                             isSelected 
                               ? 'bg-amber-600 text-white font-medium' 
                               : 'bg-white/10 text-zinc-200 hover:bg-white/15'
@@ -651,7 +654,7 @@ export function HeaderSearch() {
                     })}
                   </div>
                   {selectedYear && (
-                    <div className="mt-2">
+                    <div className="mt-1.5 sm:mt-2">
                       <button
                         onClick={() => setSelectedYear(undefined)}
                         className="text-xs text-zinc-400 hover:text-zinc-300 underline"
@@ -662,22 +665,22 @@ export function HeaderSearch() {
                   )}
 
                   {/* Rating Filter */}
-                  <div className="mb-3 mt-6 text-sm text-zinc-300">
+                  <div className="mb-2 sm:mb-3 mt-4 sm:mt-6 text-xs sm:text-sm text-zinc-300">
                     Filter by Rating
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     <div>
                       <label className="block text-xs text-zinc-400 mb-1">Min Rating</label>
                       <select
                         value={minRating || ''}
                         onChange={(e) => setMinRating(e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors appearance-none"
+                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-md sm:rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors appearance-none"
                         style={{
                           backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
                           backgroundRepeat: 'no-repeat',
-                          backgroundPosition: 'right 8px center',
-                          backgroundSize: '16px',
-                          paddingRight: '32px'
+                          backgroundPosition: 'right 6px center',
+                          backgroundSize: '12px',
+                          paddingRight: '24px'
                         }}
                       >
                         <option value="" className="bg-zinc-800 text-zinc-200">Any</option>
@@ -696,13 +699,13 @@ export function HeaderSearch() {
                       <select
                         value={maxRating || ''}
                         onChange={(e) => setMaxRating(e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors appearance-none"
+                        className="w-full bg-zinc-800/80 border border-zinc-700/50 rounded-md sm:rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8] hover:bg-zinc-700/80 transition-colors appearance-none"
                         style={{
                           backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
                           backgroundRepeat: 'no-repeat',
-                          backgroundPosition: 'right 8px center',
-                          backgroundSize: '16px',
-                          paddingRight: '32px'
+                          backgroundPosition: 'right 6px center',
+                          backgroundSize: '12px',
+                          paddingRight: '24px'
                         }}
                       >
                         <option value="" className="bg-zinc-800 text-zinc-200">Any</option>
@@ -716,7 +719,7 @@ export function HeaderSearch() {
                     </div>
                   </div>
                   {(minRating !== undefined || maxRating !== undefined) && (
-                    <div className="mt-2">
+                    <div className="mt-1.5 sm:mt-2">
                       <button
                         onClick={() => {
                           setMinRating(undefined)

@@ -161,7 +161,7 @@ export function ExpandedGameCard({
   if (!isOpen || !isMounted) return null
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 md:p-6">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -170,14 +170,14 @@ export function ExpandedGameCard({
       />
       
       {/* Modal Panel */}
-      <div className="relative w-full max-w-6xl h-full max-h-[90vh] rounded-2xl border border-[#5d4af8]/30 bg-zinc-900/50 shadow-[0_0_20px_rgba(93,74,248,0.3)] hover:shadow-[0_0_30px_rgba(93,74,248,0.4)] transition-shadow duration-300 overflow-hidden flex flex-col">
+      <div className="relative w-full max-w-6xl h-full max-h-[95vh] sm:max-h-[90vh] rounded-xl sm:rounded-2xl border border-[#5d4af8]/30 bg-zinc-900/50 shadow-[0_0_20px_rgba(93,74,248,0.3)] hover:shadow-[0_0_30px_rgba(93,74,248,0.4)] transition-shadow duration-300 overflow-hidden flex flex-col">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 rounded-full p-2 text-zinc-300 hover:bg-zinc-800 focus:outline-none transition-colors"
+          className="absolute right-2 sm:right-4 top-2 sm:top-4 z-10 rounded-full p-1.5 sm:p-2 text-zinc-300 hover:bg-zinc-800 focus:outline-none transition-colors"
           aria-label="Close"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
         
         {/* Split Layout Container */}
@@ -185,42 +185,42 @@ export function ExpandedGameCard({
           
           {/* Left Side - Game Information */}
           <div className="flex-1 overflow-y-auto scrollbar-hide">
-            <div className="p-4 md:p-6 lg:p-8 pb-8">
+            <div className="p-3 sm:p-4 md:p-6 lg:p-8 pb-6 sm:pb-8">
               
               {/* Game Title */}
-              <div className="mb-4 md:mb-6">
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 md:mb-4">
+              <div className="mb-3 sm:mb-4 md:mb-6">
+                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-3 md:mb-4 pr-8 sm:pr-0">
                   {game.name}
                 </h1>
                 
                 {/* Rating and Release Date Row */}
-                <div className="flex flex-wrap items-center gap-3 md:gap-4 mb-4 md:mb-6">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6">
                 {(game.rating || game.total_rating) && (
-                  <div className="flex items-center space-x-1 bg-green-600/20 px-3 py-2 rounded-full">
-                    <Star className="h-4 w-4 text-green-400 fill-green-400" />
-                    <span className="text-green-400 font-semibold text-lg">
+                  <div className="flex items-center space-x-1 bg-green-600/20 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full">
+                    <Star className="h-3 w-3 sm:h-4 sm:w-4 text-green-400 fill-green-400" />
+                    <span className="text-green-400 font-semibold text-sm sm:text-base md:text-lg">
                       {Math.round((game.rating || game.total_rating!) / 10)}/10
                     </span>
                   </div>
                 )}
                 {similarityScore && (
-                  <div className="flex items-center space-x-1 bg-gradient-to-r from-[#5d4af8]/20 to-purple-500/20 px-3 py-2 rounded-full">
-                    <svg className="h-4 w-4 text-[#5d4af8]" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="flex items-center space-x-1 bg-gradient-to-r from-[#5d4af8]/20 to-purple-500/20 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full">
+                    <svg className="h-3 w-3 sm:h-4 sm:w-4 text-[#5d4af8]" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-[#5d4af8] font-semibold text-lg">
+                    <span className="text-[#5d4af8] font-semibold text-sm sm:text-base md:text-lg">
                       {Math.round((similarityScore * 100))}% match
                     </span>
                   </div>
                 )}
-                <div className="flex items-center space-x-2 text-zinc-400">
-                  <Calendar className="h-4 w-4" />
-                  <span className="font-medium">{getReleaseDate()}</span>
+                <div className="flex items-center space-x-1 sm:space-x-2 text-zinc-400">
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="font-medium text-xs sm:text-sm md:text-base">{getReleaseDate()}</span>
                 </div>
                 {getCompanyNames().length > 0 && (
-                  <div className="flex items-center space-x-2 text-zinc-400">
-                    <Users className="h-4 w-4" />
-                    <span className="font-medium">{getCompanyNames()[0]}</span>
+                  <div className="flex items-center space-x-1 sm:space-x-2 text-zinc-400">
+                    <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="font-medium text-xs sm:text-sm md:text-base">{getCompanyNames()[0]}</span>
                   </div>
                 )}
               </div>
@@ -228,8 +228,8 @@ export function ExpandedGameCard({
 
             {/* Hours Played Input */}
             {showHoursInput && (
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
+              <div className="mb-4 sm:mb-6">
+                <label className="block text-xs sm:text-sm font-medium text-zinc-300 mb-2">
                   Hours Played
                 </label>
                 <div className="flex items-center space-x-2">
@@ -239,29 +239,30 @@ export function ExpandedGameCard({
                     step="0.1"
                     value={hoursPlayed}
                     onChange={(e) => setHoursPlayed(parseFloat(e.target.value) || 0)}
-                    className="w-24 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8]"
+                    className="w-20 sm:w-24 px-2 sm:px-3 py-1.5 sm:py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#5d4af8]/50 focus:border-[#5d4af8]"
                     placeholder="0"
                   />
-                  <span className="text-zinc-400 text-sm">hours</span>
+                  <span className="text-zinc-400 text-xs sm:text-sm">hours</span>
                 </div>
               </div>
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-wrap gap-3 mb-8">
+            <div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
               <div className="relative">
                 <Button
                   onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                  className={`${displayOption?.color || 'bg-[#5d4af8] hover:bg-[#5d4af8]/90'} text-white px-8 py-3 text-lg font-medium flex items-center gap-2`}
+                  className={`${displayOption?.color || 'bg-[#5d4af8] hover:bg-[#5d4af8]/90'} text-white px-4 sm:px-6 md:px-8 py-2 sm:py-2.5 md:py-3 text-sm sm:text-base md:text-lg font-medium flex items-center gap-1.5 sm:gap-2`}
                 >
-                  <Plus className="h-5 w-5" />
-                  {getButtonText()}
-                  <ChevronDown className="h-4 w-4" />
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+                  <span className="hidden sm:inline">{getButtonText()}</span>
+                  <span className="sm:hidden">{selectedStatus ? 'Added' : 'Add'}</span>
+                  <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
                 
                 {/* Status Dropdown */}
                 {showStatusDropdown && (
-                  <div className="absolute top-full left-0 mt-2 w-56 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-50">
+                  <div className="absolute top-full left-0 mt-2 w-48 sm:w-56 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-50">
                     <div className="py-2">
                       {statusOptions.map((option) => (
                         <button
@@ -271,10 +272,10 @@ export function ExpandedGameCard({
                             onAddToLibrary?.(option.value, hoursPlayed)
                             setShowStatusDropdown(false)
                           }}
-                          className="w-full text-left px-4 py-3 text-white hover:bg-zinc-700 transition-colors flex items-center gap-3"
+                          className="w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 text-white hover:bg-zinc-700 transition-colors flex items-center gap-2 sm:gap-3"
                         >
-                          <div className={`w-3 h-3 rounded-full ${option.color.split(' ')[0].replace('bg-', 'bg-')}`} />
-                          {option.label}
+                          <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${option.color.split(' ')[0].replace('bg-', 'bg-')}`} />
+                          <span className="text-xs sm:text-sm">{option.label}</span>
                         </button>
                       ))}
                     </div>
@@ -285,9 +286,9 @@ export function ExpandedGameCard({
 
             {/* Game Description */}
             {game.summary && (
-              <div className="mb-8">
-                <h3 className="text-xl font-semibold text-white mb-4">About</h3>
-                <p className="text-zinc-300 leading-relaxed text-base">
+              <div className="mb-6 sm:mb-8">
+                <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4">About</h3>
+                <p className="text-zinc-300 leading-relaxed text-sm sm:text-base">
                   {(() => {
                     const words = game.summary.split(' ');
                     if (words.length <= 130) {
@@ -300,20 +301,20 @@ export function ExpandedGameCard({
             )}
 
             {/* Game Details Grid */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
             {/* Genres */}
             {game.genres && game.genres.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Tag className="h-4 w-4 text-zinc-400" />
-                  <span className="text-zinc-400 font-semibold">Genres</span>
+              <div className="mb-4 sm:mb-6">
+                <div className="flex items-center space-x-2 mb-2 sm:mb-3">
+                  <Tag className="h-3 w-3 sm:h-4 sm:w-4 text-zinc-400" />
+                  <span className="text-zinc-400 font-semibold text-sm sm:text-base">Genres</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {game.genres.map((genre) => (
                     <Badge 
                       key={genre.id || genre.name}
                       variant="secondary" 
-                      className="bg-[#5d4af8]/20 text-[#5d4af8] border-[#5d4af8]/30"
+                      className="bg-[#5d4af8]/20 text-[#5d4af8] border-[#5d4af8]/30 text-xs sm:text-sm px-2 sm:px-3 py-1"
                     >
                       {genre.name}
                     </Badge>
@@ -324,17 +325,17 @@ export function ExpandedGameCard({
 
             {/* Platforms */}
             {game.platforms && game.platforms.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Tag className="h-4 w-4 text-zinc-400" />
-                  <span className="text-zinc-400 font-semibold">Platforms</span>
+              <div className="mb-4 sm:mb-6">
+                <div className="flex items-center space-x-2 mb-2 sm:mb-3">
+                  <Tag className="h-3 w-3 sm:h-4 sm:w-4 text-zinc-400" />
+                  <span className="text-zinc-400 font-semibold text-sm sm:text-base">Platforms</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {game.platforms.slice(0, 6).map((platform) => (
                     <Badge 
                       key={platform.id || platform.name}
                       variant="outline" 
-                      className="border-zinc-600 text-zinc-300"
+                      className="border-zinc-600 text-zinc-300 text-xs sm:text-sm px-2 sm:px-3 py-1"
                     >
                       {platform.name}
                     </Badge>
@@ -345,17 +346,17 @@ export function ExpandedGameCard({
 
             {/* Keywords/Themes */}
             {(game.keywords && game.keywords.length > 0) || (game.themes && game.themes.length > 0) ? (
-              <div className="mb-6">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Tag className="h-4 w-4 text-zinc-400" />
-                  <span className="text-zinc-400 font-semibold">Tags</span>
+              <div className="mb-4 sm:mb-6">
+                <div className="flex items-center space-x-2 mb-2 sm:mb-3">
+                  <Tag className="h-3 w-3 sm:h-4 sm:w-4 text-zinc-400" />
+                  <span className="text-zinc-400 font-semibold text-sm sm:text-base">Tags</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {game.keywords?.slice(0, 8).map((keyword) => (
                     <Badge 
                       key={keyword.id || keyword.name}
                       variant="secondary"
-                      className="bg-zinc-800 text-zinc-300 text-xs"
+                      className="bg-zinc-800 text-zinc-300 text-xs px-2 py-1"
                     >
                       {keyword.name}
                     </Badge>
@@ -364,7 +365,7 @@ export function ExpandedGameCard({
                     <Badge 
                       key={theme.id || theme.name}
                       variant="secondary"
-                      className="bg-zinc-800 text-zinc-300 text-xs"
+                      className="bg-zinc-800 text-zinc-300 text-xs px-2 py-1"
                     >
                       {theme.name}
                     </Badge>
@@ -375,17 +376,17 @@ export function ExpandedGameCard({
 
             {/* Additional Companies */}
             {getCompanyNames().length > 1 && (
-              <div className="mb-6">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Users className="h-4 w-4 text-zinc-400" />
-                  <span className="text-zinc-400 font-semibold">Companies</span>
+              <div className="mb-4 sm:mb-6">
+                <div className="flex items-center space-x-2 mb-2 sm:mb-3">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 text-zinc-400" />
+                  <span className="text-zinc-400 font-semibold text-sm sm:text-base">Companies</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {getCompanyNames().map((company, index) => (
                     <Badge 
                       key={index}
                       variant="outline"
-                      className="border-zinc-600 text-zinc-300"
+                      className="border-zinc-600 text-zinc-300 text-xs sm:text-sm px-2 sm:px-3 py-1"
                     >
                       {company}
                     </Badge>
@@ -399,16 +400,16 @@ export function ExpandedGameCard({
           </div>
 
           {/* Right Side - Game Cover */}
-          <div className="w-full md:w-80 lg:w-96 bg-gradient-to-b from-zinc-800/50 to-zinc-900/50 flex items-center justify-center p-4 md:p-6 border-t md:border-t-0 md:border-l border-[#5d4af8]/20">
-            <div className="relative w-full max-w-xs md:max-w-sm">
+          <div className="w-full md:w-80 lg:w-96 bg-gradient-to-b from-zinc-800/50 to-zinc-900/50 flex items-center justify-center p-3 sm:p-4 md:p-6 border-t md:border-t-0 md:border-l border-[#5d4af8]/20">
+            <div className="relative w-full max-w-48 sm:max-w-xs md:max-w-sm">
               <img
                 src={getCoverUrl(game.cover?.url || (game as any).cover_url)}
                 alt={game.name}
-                className="w-full h-auto rounded-xl shadow-[0_0_15px_rgba(93,74,248,0.2)] object-cover hover:shadow-[0_0_25px_rgba(93,74,248,0.3)] transition-shadow duration-300"
+                className="w-full h-auto rounded-lg sm:rounded-xl shadow-[0_0_15px_rgba(93,74,248,0.2)] object-cover hover:shadow-[0_0_25px_rgba(93,74,248,0.3)] transition-shadow duration-300"
                 style={{ aspectRatio: '3/4' }}
               />
               {/* Purple glow overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#5d4af8]/5 via-transparent to-transparent rounded-xl" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#5d4af8]/5 via-transparent to-transparent rounded-lg sm:rounded-xl" />
             </div>
           </div>
           
