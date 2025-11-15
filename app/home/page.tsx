@@ -379,13 +379,13 @@ export default function HomePage() {
         {/* Personalized Recommendations from Rec Engine */}
         {personalizedRecs.length > 0 && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between px-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6">
               <div>
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-[#5d4af8] bg-clip-text text-transparent">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-400 to-[#5d4af8] bg-clip-text text-transparent">
                   Your Personalized Recommendations
                 </h2>
                 {gamerProfile && (
-                  <p className="text-[#5d4af8] text-sm font-medium mt-1">
+                  <p className="text-[#5d4af8] text-xs sm:text-sm font-medium mt-1">
                     Based on your {gamerProfile} profile
                   </p>
                 )}
@@ -393,9 +393,10 @@ export default function HomePage() {
               <Button
                 onClick={() => window.location.href = '/recommendations'}
                 size="sm"
-                className="bg-gradient-to-r from-purple-600 to-[#5d4af8] hover:from-purple-700 hover:to-[#4a3ad6] text-white rounded-full"
+                className="bg-gradient-to-r from-purple-600 to-[#5d4af8] hover:from-purple-700 hover:to-[#4a3ad6] text-white rounded-full text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 self-start sm:self-auto"
               >
-                Get New Recommendations
+                <span className="hidden sm:inline">Get New Recommendations</span>
+                <span className="sm:hidden">New Recs</span>
               </Button>
             </div>
             <GameRow 
