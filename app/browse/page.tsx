@@ -375,10 +375,220 @@ function BrowseContent() {
               </div>
             </div>
 
-            {/* Filter panels - keeping your existing filter UI */}
+            {/* Filter panels */}
             {showFilters && (
               <div className="border-t border-zinc-700 pt-6 space-y-6">
-                {/* All your existing filter sections here */}
+                {/* Active Filters Summary */}
+                {hasActiveFilters && (
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <span className="text-zinc-400 text-sm">Active filters:</span>
+                    {filters.searchQuery && (
+                      <Badge variant="secondary" className="bg-blue-600/90 text-white">
+                        Query: "{filters.searchQuery}"
+                      </Badge>
+                    )}
+                    {filters.selectedGenres.map(genre => (
+                      <Badge key={genre} variant="secondary" className="bg-purple-600/90 text-white">
+                        {genre}
+                      </Badge>
+                    ))}
+                    {filters.selectedPlatforms.map(platformId => (
+                      <Badge key={platformId} variant="secondary" className="bg-emerald-600/90 text-white">
+                        {PLATFORM_NAMES[platformId]}
+                      </Badge>
+                    ))}
+                    {filters.selectedYear && (
+                      <Badge variant="secondary" className="bg-amber-600/90 text-white">
+                        Year: {filters.selectedYear}
+                      </Badge>
+                    )}
+                    {(filters.minRating !== undefined || filters.maxRating !== undefined) && (
+                      <Badge variant="secondary" className="bg-rose-600/90 text-white">
+                        Rating: {filters.minRating ? (filters.minRating / 10).toFixed(1) : '0'}-{filters.maxRating ? (filters.maxRating / 10).toFixed(1) : '10'}
+                      </Badge>
+                    )}
+                    <Button
+                      onClick={clearFilters}
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                )}
+
+                {/* Genre Filters */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Genres</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {IGDB_GENRES.map((genre) => {
+                      const isSelected = filters.selectedGenres.includes(genre.name)
+                      return (
+                        <Button
+                          key={genre.id}
+                          variant={isSelected ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleGenreToggle(genre.name)}
+                          className={`${
+                            isSelected 
+                              ? 'bg-[#5d4af8] text-white border-[#5d4af8]' 
+                              : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700'
+                          }`}
+                        >
+                          {genre.name}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Platform Filters */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Platforms</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {PLATFORMS.map((platform) => {
+                      const isSelected = filters.selectedPlatforms.includes(platform.id)
+                      return (
+                        <Button
+                          key={platform.id}
+                          variant={isSelected ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleFilterChange('selectedPlatforms', 
+                            isSelected 
+                              ? filters.selectedPlatforms.filter(id => id !== platform.id)
+                              : [...filters.selectedPlatforms, platform.id]
+                          )}
+                          className={`${
+                            isSelected 
+                              ? 'bg-emerald-600 text-white border-emerald-600' 
+                              : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700'
+                          }`}
+                        >
+                          {platform.name}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Year Filter */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Release Year</h3>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {[2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015].map((year) => {
+                      const isSelected = filters.selectedYear === year
+                      return (
+                        <Button
+                          key={year}
+                          variant={isSelected ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleFilterChange('selectedYear', isSelected ? undefined : year)}
+                          className={`${
+                            isSelected 
+                              ? 'bg-amber-600 text-white border-amber-600' 
+                              : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700'
+                          }`}
+                        >
+                          {year}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Custom year"
+                      value={customYearInput}
+                      onChange={(e) => setCustomYearInput(e.target.value)}
+                      className="w-32 bg-zinc-800 border-zinc-700 text-white"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const year = parseInt(customYearInput)
+                        if (!isNaN(year) && year > 1970 && year <= new Date().getFullYear() + 2) {
+                          handleFilterChange('selectedYear', year)
+                          setCustomYearInput('')
+                        }
+                      }}
+                      className="bg-zinc-700 hover:bg-zinc-600"
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Rating Filter */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Rating</h3>
+                  <div className="grid grid-cols-2 gap-4 max-w-md">
+                    <div>
+                      <label className="block text-sm text-zinc-400 mb-1">Min Rating</label>
+                      <select
+                        value={filters.minRating || ''}
+                        onChange={(e) => handleFilterChange('minRating', e.target.value ? Number(e.target.value) : undefined)}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white focus:border-[#5d4af8] focus:ring-[#5d4af8]"
+                      >
+                        <option value="">Any</option>
+                        <option value="90">9.0+</option>
+                        <option value="85">8.5+</option>
+                        <option value="80">8.0+</option>
+                        <option value="75">7.5+</option>
+                        <option value="70">7.0+</option>
+                        <option value="65">6.5+</option>
+                        <option value="60">6.0+</option>
+                        <option value="50">5.0+</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-zinc-400 mb-1">Max Rating</label>
+                      <select
+                        value={filters.maxRating || ''}
+                        onChange={(e) => handleFilterChange('maxRating', e.target.value ? Number(e.target.value) : undefined)}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white focus:border-[#5d4af8] focus:ring-[#5d4af8]"
+                      >
+                        <option value="">Any</option>
+                        <option value="100">10.0 or less</option>
+                        <option value="95">9.5 or less</option>
+                        <option value="90">9.0 or less</option>
+                        <option value="85">8.5 or less</option>
+                        <option value="80">8.0 or less</option>
+                        <option value="75">7.5 or less</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sort By */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Sort By</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { key: 'popular', label: 'Popular' },
+                      { key: 'rating', label: 'Rating' },
+                      { key: 'name', label: 'Name' },
+                      { key: 'release_date', label: 'Release Date' }
+                    ].map((sort) => {
+                      const isSelected = filters.sortBy === sort.key
+                      return (
+                        <Button
+                          key={sort.key}
+                          variant={isSelected ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleFilterChange('sortBy', sort.key as FilterState['sortBy'])}
+                          className={`${
+                            isSelected 
+                              ? 'bg-[#5d4af8] text-white border-[#5d4af8]' 
+                              : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700'
+                          }`}
+                        >
+                          {sort.label}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -406,6 +616,7 @@ function BrowseContent() {
           ) : (
             <GameGrid 
               games={games}
+              viewMode={viewMode}
               onAddToLibrary={(gameId, status = 'backlog') => handleAddToLibrary(gameId, status)}
               onMoreInfo={handleGameSelect}
             />
