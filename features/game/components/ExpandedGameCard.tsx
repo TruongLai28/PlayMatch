@@ -28,6 +28,10 @@ interface Game {
   scoreInfo?: {
     similarity?: number
   }
+  // New fields for detailed view
+  screenshots?: Array<{ id: number | string; url: string }>
+  videos?: Array<{ id: number | string; video_id: string }>
+  similar_games?: Array<{ id: number; name: string; cover?: { url: string } }>
 }
 
 interface ExpandedGameCardProps {
@@ -54,12 +58,16 @@ export function ExpandedGameCard({
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [hoursPlayed, setHoursPlayed] = useState(0)
   const [selectedStatus, setSelectedStatus] = useState<'backlog' | 'playing' | 'completed' | 'dropped' | null>(null)
+  const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null)
   
   // Get current library status for this game
   const currentStatus = getGameStatus(game.id)
   
   // Get similarity score from either field
   const similarityScore = game.similarity_score || game.scoreInfo?.similarity
+  
+  // Use game screenshots directly from Supabase
+  const screenshots = game.screenshots || []
 
   useEffect(() => {
     setIsMounted(true)
@@ -72,6 +80,7 @@ export function ExpandedGameCard({
       setSelectedStatus(null)
     } else {
       document.body.style.overflow = 'unset'
+      setSelectedScreenshot(null)
     }
 
     return () => {
@@ -300,6 +309,38 @@ export function ExpandedGameCard({
               </div>
             )}
 
+            {/* Screenshots Gallery */}
+            {screenshots.length > 0 && (
+              <div className="mb-6 sm:mb-8">
+                <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4">Screenshots</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
+                  {screenshots.slice(0, 6).map((screenshot, index) => {
+                    const screenshotUrl = screenshot.url?.startsWith('//') 
+                      ? `https:${screenshot.url}` 
+                      : screenshot.url
+                    
+                    const thumbnailUrl = screenshotUrl?.replace('t_thumb', 't_screenshot_med') || screenshotUrl
+                    const fullUrl = screenshotUrl?.replace('t_thumb', 't_screenshot_huge') || screenshotUrl
+                    
+                    return (
+                      <button
+                        key={screenshot.id || index}
+                        onClick={() => setSelectedScreenshot(fullUrl)}
+                        className="aspect-video bg-zinc-800 rounded-lg overflow-hidden hover:ring-2 hover:ring-[#5d4af8]/50 transition-all duration-200 group"
+                      >
+                        <img
+                          src={thumbnailUrl}
+                          alt={`${game.name} screenshot ${index + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          loading="lazy"
+                        />
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Game Details Grid */}
             <div className="space-y-4 sm:space-y-6">
             {/* Genres */}
@@ -414,6 +455,30 @@ export function ExpandedGameCard({
           </div>
           
         </div>
+        
+        {/* Screenshot Modal */}
+        {selectedScreenshot && (
+          <div 
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+            onClick={() => setSelectedScreenshot(null)}
+          >
+            <div className="relative max-w-6xl max-h-[90vh] w-full">
+              <button
+                onClick={() => setSelectedScreenshot(null)}
+                className="absolute -top-12 right-0 text-white hover:text-zinc-300 p-2 z-10"
+                aria-label="Close screenshot"
+              >
+                <X className="h-6 w-6" />
+              </button>
+              <img
+                src={selectedScreenshot}
+                alt={`${game.name} screenshot`}
+                className="w-full h-auto rounded-lg shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

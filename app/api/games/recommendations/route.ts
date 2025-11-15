@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       // Get a mix of high-rated games from different genres as recommendations
       const { data: dbGames, error } = await supabase
         .from('games')
-        .select('*')
+        .select('*, screenshots')
         .gte('rating', 75)
         .order('rating', { ascending: false })
         .range(10, 21) // Get games 11-22 from the high-rated list (different from popular)
@@ -27,18 +27,20 @@ export async function GET(request: NextRequest) {
         // If database also fails, return a different subset of popular games
         const { data: popularGames } = await supabase
           .from('games')
-          .select('*')
+          .select('*, screenshots')
           .order('rating', { ascending: false })
           .range(12, 23) // Get games 13-24 from popular list
         
         games = popularGames?.map(game => ({
           ...game,
-          cover: game.cover_url ? { url: game.cover_url } : undefined
+          cover: game.cover_url ? { url: game.cover_url } : undefined,
+          screenshots: typeof game.screenshots === 'string' ? JSON.parse(game.screenshots) : game.screenshots || []
         })) || []
       } else {
         games = dbGames?.map(game => ({
           ...game,
-          cover: game.cover_url ? { url: game.cover_url } : undefined
+          cover: game.cover_url ? { url: game.cover_url } : undefined,
+          screenshots: typeof game.screenshots === 'string' ? JSON.parse(game.screenshots) : game.screenshots || []
         })) || []
       }
     }
@@ -52,13 +54,14 @@ export async function GET(request: NextRequest) {
     try {
       const { data: fallbackGames } = await supabase
         .from('games')
-        .select('*')
+        .select('*, screenshots')
         .order('rating', { ascending: false })
         .range(12, 23)
       
       const transformedGames = fallbackGames?.map(game => ({
         ...game,
-        cover: game.cover_url ? { url: game.cover_url } : undefined
+        cover: game.cover_url ? { url: game.cover_url } : undefined,
+        screenshots: typeof game.screenshots === 'string' ? JSON.parse(game.screenshots) : game.screenshots || []
       })) || []
       
       return NextResponse.json(transformedGames)

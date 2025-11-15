@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { supabase } from './lib/supabase.ts'
 
 // Simple test to see what columns exist in games table
 export async function testGameColumns() {

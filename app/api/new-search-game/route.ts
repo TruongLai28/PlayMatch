@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '../../../lib/supabase'
-import { normalize, Game } from '../../../lib/search-query'
+import { normalize } from '../../../lib/search-query'
 import { filterByGenre } from '../../../lib/filterByGenre'
 import { filterByYear } from '../../../lib/filterByYear'
 import { filterByPlatform } from '../../../lib/filterByPlatform'
 import { filterByRating } from '../../../lib/filterByRating'
+
+interface Game {
+  id: number
+  name: string
+  summary?: string
+  cover_url?: string
+  first_release_date?: string
+  genres?: Array<{ id: number; name: string }>
+  platforms?: Array<{ id: number; name: string }>
+  rating?: number
+  screenshots?: Array<{ id: number | string; url: string }>
+}
 
 /**
  * @swagger
@@ -265,11 +277,23 @@ export async function GET(request: NextRequest) {
     // --- Supabase search ---
     let results: Game[] = []
     try {
-      const broadQuery = query.slice(0, 3)
+      // Use a more flexible search approach
+      let searchQuery = query
+      if (query.length > 6) {
+        // For longer queries, use the first 6 characters for broader matching
+        searchQuery = query.slice(0, 6)
+      } else if (query.length <= 3) {
+        // For very short queries, keep the full query
+        searchQuery = query
+      } else {
+        // For medium length queries (4-6 chars), use the full query
+        searchQuery = query
+      }
+      
       const { data, error } = await supabase
         .from('games')
-        .select('id, name, summary, cover_url, first_release_date, genres, platforms, rating')
-        .ilike('name', `%${broadQuery}%`)
+        .select('id, name, summary, cover_url, first_release_date, genres, platforms, rating, screenshots')
+        .ilike('name', `%${searchQuery}%`)
 
       if (error) throw error
 
@@ -277,6 +301,7 @@ export async function GET(request: NextRequest) {
         ...g,
         genres: typeof g.genres === 'string' ? JSON.parse(g.genres) : g.genres || [],
         platforms: typeof g.platforms === 'string' ? JSON.parse(g.platforms) : g.platforms || [],
+        screenshots: typeof g.screenshots === 'string' ? JSON.parse(g.screenshots) : g.screenshots || [],
         first_release_date: g.first_release_date
           ? new Date(
               g.first_release_date > 9999999999
@@ -305,18 +330,18 @@ export async function GET(request: NextRequest) {
     console.log(`[Final Results]: ${results.length} games total`)
     console.log('[Game Names]: [\n  ' + results.map((g) => `'${g.name}'`).join(',\n  ') + '\n]')
 
+    // Return the results
     return NextResponse.json({
-      results: results.map((g) => ({
-        id: g.id,
-        name: g.name,
-        summary: g.summary,
-        cover_url: g.cover_url,
-        release_date: g.first_release_date,
-        genres: g.genres,
-        platforms: g.platforms,
-        rating: g.rating ?? undefined,
-      })),
+      results: results,
       total: results.length,
+      query: query,
+      filters: {
+        genres: genreIds,
+        platforms: platformIds,
+        year,
+        minRating,
+        maxRating
+      }
     })
   } catch (err) {
     console.error('Search error:', err)

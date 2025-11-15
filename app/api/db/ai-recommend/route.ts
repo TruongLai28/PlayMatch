@@ -152,6 +152,7 @@ export async function POST(request: NextRequest) {
           themes,
           platforms,
           keywords,
+          screenshots,
           1 - (embedding <=> $1::vector) as similarity
         FROM games
         WHERE embedding IS NOT NULL
@@ -191,6 +192,7 @@ export async function POST(request: NextRequest) {
       const recommendations = result.rows.map(game => ({
         ...game,
         cover: game.cover_url ? { url: game.cover_url } : undefined,
+        screenshots: typeof game.screenshots === 'string' ? JSON.parse(game.screenshots) : game.screenshots || [],
         similarity_score: Math.round(game.similarity * 100) / 100
       }))
 

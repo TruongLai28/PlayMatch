@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     
     const { data: games, error } = await supabase
       .from('games')
-      .select('*')
+      .select('*, screenshots')
       .order('rating', { ascending: false })
       .range(offset, offset + limit - 1)
     
@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
     // Transform data to match frontend Game interface
     const transformedGames = games?.map(game => ({
       ...game,
-      cover: game.cover_url ? { url: game.cover_url } : undefined
+      cover: game.cover_url ? { url: game.cover_url } : undefined,
+      screenshots: typeof game.screenshots === 'string' ? JSON.parse(game.screenshots) : game.screenshots || []
     })) || []
     
     console.log('DB API: Games fetched:', transformedGames.length)

@@ -8,6 +8,7 @@ interface Game {
   cover?: {
     url: string
   }
+  cover_url?: string  // Add this field
   summary?: string
   rating?: number
   total_rating?: number
@@ -77,17 +78,46 @@ export function GameGrid({
             >
               {/* Game Cover */}
               <div className="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24">
-                {game.cover?.url ? (
-                  <img 
-                    src={game.cover.url.replace('thumb', 'cover_small')}
-                    alt={game.name}
-                    className="w-full h-full object-cover rounded"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-zinc-700 rounded flex items-center justify-center">
-                    <span className="text-zinc-400 text-xs">No Image</span>
-                  </div>
-                )}
+                {(() => {
+                  // Get cover URL from either format
+                  const coverUrl = game.cover?.url || game.cover_url
+                  
+                  if (coverUrl) {
+                    // Process the cover URL to get the right size
+                    let processedUrl = coverUrl
+                    
+                    // Handle IGDB URLs
+                    if (coverUrl.startsWith('//')) {
+                      processedUrl = 'https:' + coverUrl
+                    }
+                    
+                    // Replace thumbnail size with cover_small for list view
+                    processedUrl = processedUrl
+                      .replace('t_thumb', 't_cover_small')
+                      .replace('t_cover_big', 't_cover_small')
+                    
+                    return (
+                      <img 
+                        src={processedUrl}
+                        alt={game.name}
+                        className="w-full h-full object-cover rounded"
+                        onError={(e) => {
+                          // Fallback to placeholder on error
+                          const target = e.target as HTMLImageElement
+                          target.style.display = 'none'
+                          const placeholder = target.nextElementSibling as HTMLElement
+                          if (placeholder) placeholder.style.display = 'flex'
+                        }}
+                      />
+                    )
+                  }
+                  
+                  return null
+                })()}
+                {/* Fallback placeholder */}
+                <div className="w-full h-full bg-zinc-700 rounded flex items-center justify-center" style={{ display: !game.cover?.url && !game.cover_url ? 'flex' : 'none' }}>
+                  <span className="text-zinc-400 text-xs">No Image</span>
+                </div>
               </div>
 
               {/* Game Info */}

@@ -20,6 +20,7 @@ interface Game {
   genres?: Array<{ id: number; name: string }>
   platforms?: Array<{ id: number; name: string }>
   release_date?: string
+  screenshots?: Array<{ id: number | string; url: string }>
 }
 
 interface FilterState {
@@ -284,21 +285,160 @@ function BrowseContent() {
   return (
     <>
       <style jsx>{`
-        /* ...existing gradient styles... */
+        .gradient-circles {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 1;
+        }
+        .gradient-circle {
+          position: absolute;
+          border-radius: 50%;
+          background: radial-gradient(circle, 
+            rgba(93, 74, 248, 0.15) 0%, 
+            rgba(124, 58, 237, 0.1) 30%, 
+            rgba(93, 74, 248, 0.05) 60%, 
+            transparent 100%);
+          filter: blur(1px);
+          animation: float 20s ease-in-out infinite;
+        }
+        .gradient-circle:nth-child(1) {
+          width: 350px;
+          height: 350px;
+          top: 10%;
+          left: -120px;
+          animation-delay: -2s;
+        }
+        .gradient-circle:nth-child(2) {
+          width: 280px;
+          height: 280px;
+          top: -80px;
+          left: 30%;
+          animation-delay: -7s;
+        }
+        .gradient-circle:nth-child(3) {
+          width: 220px;
+          height: 220px;
+          bottom: 15%;
+          right: -90px;
+          animation-delay: -12s;
+        }
+        .gradient-circle:nth-child(4) {
+          width: 320px;
+          height: 320px;
+          top: 35%;
+          right: 15%;
+          animation-delay: -4s;
+        }
+        .gradient-circle:nth-child(5) {
+          width: 180px;
+          height: 180px;
+          bottom: -60px;
+          left: 15%;
+          animation-delay: -9s;
+        }
+        .gradient-triangle {
+          position: absolute;
+          width: 0;
+          height: 0;
+          filter: blur(2px);
+          animation: triangleFloat 25s ease-in-out infinite;
+        }
+        .gradient-triangle::before {
+          content: '';
+          position: absolute;
+          width: 200px;
+          height: 200px;
+          background: conic-gradient(
+            from 0deg at 50% 50%,
+            rgba(93, 74, 248, 0.12) 0deg,
+            rgba(124, 58, 237, 0.08) 120deg,
+            rgba(93, 74, 248, 0.04) 240deg,
+            rgba(93, 74, 248, 0.12) 360deg
+          );
+          clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+          transform: translate(-50%, -50%);
+        }
+        .gradient-triangle:nth-child(6) {
+          top: 30%;
+          left: 8%;
+          animation-delay: -6s;
+        }
+        .gradient-triangle:nth-child(6)::before {
+          width: 140px;
+          height: 140px;
+        }
+        .gradient-triangle:nth-child(7) {
+          bottom: 35%;
+          left: 45%;
+          animation-delay: -14s;
+        }
+        .gradient-triangle:nth-child(7)::before {
+          width: 160px;
+          height: 160px;
+        }
+        .gradient-triangle:nth-child(8) {
+          top: 8%;
+          right: 20%;
+          animation-delay: -9s;
+        }
+        .gradient-triangle:nth-child(8)::before {
+          width: 120px;
+          height: 120px;
+        }
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px) translateX(0px) scale(1);
+          }
+          25% {
+            transform: translateY(-20px) translateX(10px) scale(1.05);
+          }
+          50% {
+            transform: translateY(15px) translateX(-15px) scale(0.95);
+          }
+          75% {
+            transform: translateY(-10px) translateX(5px) scale(1.02);
+          }
+        }
+        @keyframes triangleFloat {
+          0%, 100% {
+            transform: translateY(0px) translateX(0px) rotate(0deg);
+          }
+          20% {
+            transform: translateY(-15px) translateX(8px) rotate(5deg);
+          }
+          40% {
+            transform: translateY(10px) translateX(-12px) rotate(-3deg);
+          }
+          60% {
+            transform: translateY(-8px) translateX(15px) rotate(7deg);
+          }
+          80% {
+            transform: translateY(12px) translateX(-5px) rotate(-2deg);
+          }
+        }
       `}</style>
       
       <div className="min-h-screen bg-black text-white relative overflow-hidden">
-        {/* Gradient decorations */}
+        {/* Decorative gradient circles and triangles */}
         <div className="gradient-circles">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className={i < 5 ? 'gradient-circle' : 'gradient-triangle'} />
-          ))}
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-circle"></div>
+          <div className="gradient-triangle"></div>
+          <div className="gradient-triangle"></div>
+          <div className="gradient-triangle"></div>
         </div>
-      
+        
         <div className="max-w-7xl mx-auto px-6 py-8 relative z-10">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-[#5d4af8] bg-clip-text text-transparent">
               {isSearchMode ? 'Search Results' : 'Browse Games'}
             </h1>
             <p className="text-zinc-400 text-lg">
@@ -328,7 +468,7 @@ function BrowseContent() {
           </div>
 
           {/* Search and Filter Bar */}
-          <div className="bg-zinc-900/50 rounded-xl border border-zinc-800 p-6 mb-8">
+          <div className="bg-zinc-900/30 backdrop-blur-sm rounded-xl border border-zinc-800/50 p-6 mb-8">
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
@@ -380,7 +520,7 @@ function BrowseContent() {
               <div className="border-t border-zinc-700 pt-6 space-y-6">
                 {/* Active Filters Summary */}
                 {hasActiveFilters && (
-                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <div className="flex flex-wrap items-center gap-2 mb-4 p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50">
                     <span className="text-zinc-400 text-sm">Active filters:</span>
                     {filters.searchQuery && (
                       <Badge variant="secondary" className="bg-blue-600/90 text-white">
@@ -419,7 +559,7 @@ function BrowseContent() {
                 )}
 
                 {/* Genre Filters */}
-                <div>
+                <div className="bg-zinc-800/20 rounded-lg p-4 border border-zinc-700/30">
                   <h3 className="text-lg font-semibold mb-3">Genres</h3>
                   <div className="flex flex-wrap gap-2">
                     {IGDB_GENRES.map((genre) => {
@@ -444,7 +584,7 @@ function BrowseContent() {
                 </div>
 
                 {/* Platform Filters */}
-                <div>
+                <div className="bg-zinc-800/20 rounded-lg p-4 border border-zinc-700/30">
                   <h3 className="text-lg font-semibold mb-3">Platforms</h3>
                   <div className="flex flex-wrap gap-2">
                     {PLATFORMS.map((platform) => {
@@ -473,7 +613,7 @@ function BrowseContent() {
                 </div>
 
                 {/* Year Filter */}
-                <div>
+                <div className="bg-zinc-800/20 rounded-lg p-4 border border-zinc-700/30">
                   <h3 className="text-lg font-semibold mb-3">Release Year</h3>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {[2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015].map((year) => {
@@ -520,7 +660,7 @@ function BrowseContent() {
                 </div>
 
                 {/* Rating Filter */}
-                <div>
+                <div className="bg-zinc-800/20 rounded-lg p-4 border border-zinc-700/30">
                   <h3 className="text-lg font-semibold mb-3">Rating</h3>
                   <div className="grid grid-cols-2 gap-4 max-w-md">
                     <div>
@@ -561,7 +701,7 @@ function BrowseContent() {
                 </div>
 
                 {/* Sort By */}
-                <div>
+                <div className="bg-zinc-800/20 rounded-lg p-4 border border-zinc-700/30">
                   <h3 className="text-lg font-semibold mb-3">Sort By</h3>
                   <div className="flex flex-wrap gap-2">
                     {[
@@ -601,25 +741,31 @@ function BrowseContent() {
               ))}
             </div>
           ) : games.length === 0 ? (
-            <div className="text-center py-16">
+            <div className="text-center py-16 relative z-10">
               <div className="text-6xl mb-4">🎮</div>
-              <h3 className="text-xl font-semibold mb-2">No games found</h3>
+              <h3 className="text-xl font-semibold mb-2 bg-gradient-to-r from-purple-400 to-[#5d4af8] bg-clip-text text-transparent">No games found</h3>
               <p className="text-zinc-400 mb-4">
                 {isSearchMode ? 'Try adjusting your search or filters' : 'Unable to load games'}
               </p>
               {hasActiveFilters && (
-                <Button onClick={clearFilters} variant="outline" className="border-zinc-700">
+                <Button 
+                  onClick={clearFilters} 
+                  variant="outline" 
+                  className="border-zinc-700 hover:border-[#5d4af8] hover:text-[#5d4af8] transition-colors"
+                >
                   Clear All Filters
                 </Button>
               )}
             </div>
           ) : (
-            <GameGrid 
-              games={games}
-              viewMode={viewMode}
-              onAddToLibrary={(gameId, status = 'backlog') => handleAddToLibrary(gameId, status)}
-              onMoreInfo={handleGameSelect}
-            />
+            <div className="relative z-10">
+              <GameGrid 
+                games={games}
+                viewMode={viewMode}
+                onAddToLibrary={(gameId, status = 'backlog') => handleAddToLibrary(gameId, status)}
+                onMoreInfo={handleGameSelect}
+              />
+            </div>
           )}
         </div>
 

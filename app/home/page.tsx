@@ -18,6 +18,7 @@ interface Game {
   summary?: string
   rating?: number
   genres?: Array<{ id: number; name: string }>
+  screenshots?: Array<{ id: number | string; url: string }>
 }
 
 // Loading skeleton for hero section
